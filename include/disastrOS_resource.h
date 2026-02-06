@@ -2,11 +2,16 @@
 #include "linked_list.h"
 #include "disastrOS_pcb.h"
 
+typedef enum {
+  RESOURCE_GENERIC = 0,
+  RESOURCE_MESSAGE_QUEUE
+} ResourceType;
 
 typedef struct {
   ListItem list;
   int id;
-  int type;
+  ResourceType type;
+  int ref_count;    //number of open descriptors
   ListHead descriptors_ptrs;
 } Resource;
 

@@ -1,37 +1,28 @@
 #pragma once
 
-// Nodo generico della lista
 typedef struct ListItem {
     struct ListItem* next;
     struct ListItem* prev;
 } ListItem;
 
-// Lista doppia generica
 typedef struct ListHead {
     ListItem* first;
     ListItem* last;
     int size;
 } ListHead;
 
-// inizializza una lista vuota
 void List_init(ListHead* list);
 
 ListItem* List_find(ListHead* head, ListItem* item);
 
-// inserisce un item in fondo alla lista
-ListItem* List_insert(ListHead* head, ListItem* previous, ListItem* item);
+ListItem* List_insert(ListHead* head, ListItem* previous, ListItem* item); // inserts an item at the end of the list
 
-// rimuove un item dalla lista
-ListItem* List_detach(ListHead* list, ListItem* item);
+ListItem* List_detach(ListHead* list, ListItem* item); // removes an item from the list
 
-// ritorna il primo item della lista (senza rimuovere)
-ListItem* List_first(ListHead* list);
+ListItem* List_first(ListHead* list); // returns (without removing) the first item of the list
 
-// ritorna il prossimo item nella lista
-ListItem* List_next(ListItem* item);
+ListItem* List_next(ListItem* item); // returns the next item of the list
 
-// controlla se la lista è vuota
 int List_isEmpty(ListHead* list);
 
-// stampa lista generica (debug)
 void List_print(ListHead* list, void (*printItem)(ListItem*));

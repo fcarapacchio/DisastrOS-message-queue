@@ -1,26 +1,26 @@
 #pragma once
 
 #include "linked_list.h"
+#include "disastrOS_pcb.h"
 
-// Un Message rappresenta un singolo messaggio
-// inseribile in una message queue.
-// MUST: ListItem come primo campo per l'uso nelle liste.
+// A Message is a single object that can be inserted in a message queue.
+// MUST: ListItem must be the first field to allow list usage
 
 typedef struct Message {
-  ListItem list;   // nodo di lista (per la queue)
-  int size;        // dimensione del payload in byte
-  char* data;      // payload
+  ListItem list;   // list node
+  int size;        // payload size
+  char* data;      // payload buffer
+  PCB* sender;     // process that sent the message
 } Message;
 
-// Inizializza il sottosistema messaggi (pool allocator)
+// Initializes the message subsystem
 void Message_init();
 
-// Alloca un messaggio con payload di size byte
-// Ritorna NULL se non c'è memoria
+// Allocates a message with a payload of 'size' bytes
 Message* Message_alloc(int size);
 
-// Libera un messaggio precedentemente allocato
+// Frees an allocated message
 void Message_free(Message* msg);
 
-// Funzione di debug
+// Debug function
 void Message_print(Message* msg);

@@ -9,10 +9,14 @@
 extern PCB* init_pcb; // pcb of the init process
 extern PCB* running;  // pcb of the currently running process
 extern int last_pid;  // last pid to be generates
+
 extern ListHead ready_list; // list of the ready processes
 extern ListHead waiting_list; // list of the waiting processes
 extern ListHead zombie_list;  // zombies
+
 extern ListHead resources_list; // resources
+
+extern ListHead message_queue_list; // list of the message queues (IPC)
 
 extern ListHead timer_list;     //timers (concrete)
 extern volatile int disastrOS_time; //global time of disastrOS

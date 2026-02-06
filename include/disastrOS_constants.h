@@ -5,7 +5,21 @@
 #define MAX_NUM_RESOURCES_PER_PROCESS 32
 #define MAX_NUM_DESCRIPTORS_PER_PROCESS 32
 
+// message queue
+#define MESSAGE_QUEUE_SIZE sizeof(MessageQueue)
+#define MAX_MESSAGE_QUEUES        32
+#define MAX_MESSAGES_PER_QUEUE   16
+#define MESSAGE_QUEUE_BUFFER_SIZE (MAX_MESSAGE_QUEUES * MESSAGE_QUEUE_SIZE)
+#define DSOS_MQ_BLOCKING    0x1
+#define DSOS_MQ_NONBLOCKING 0x2
+
+// message
+#define MESSAGE_SIZE sizeof(Message)
+#define MESSAGE_BUFFER_SIZE (MAX_MESSAGES_PER_QUEUE * MAX_MESSAGE_QUEUES * MESSAGE_SIZE) //
+#define MESSAGE_MAX_SIZE         256
+
 #define STACK_SIZE        16384
+
 // signals
 #define MAX_SIGNALS 32
 #define DSOS_SIGCHLD 0x1
@@ -26,6 +40,13 @@
 #define DSOS_ERESOURCECLOSE -12
 #define DSOS_ERESOURCEINUSE -13
 
+// message queue errors
+#define DSOS_EMQFULL -14   // queue is full
+#define DSOS_EMQEMPTY -15  // queue is empty
+#define DSOS_EMQNOTFOUND -16  // queue not found
+#define DSOS_EMQINVALIDFD -17  // queue fd invalid
+#define DSOS_EMQTIMEOUT -18  // timeout nella receive
+
 // syscall numbers
 #define DSOS_MAX_SYSCALLS 32
 #define DSOS_MAX_SYSCALLS_ARGS 8
@@ -40,6 +61,13 @@
 #define DSOS_CALL_CLOSE_RESOURCE 8
 #define DSOS_CALL_DESTROY_RESOURCE 9
 #define DSOS_CALL_SHUTDOWN  10
+
+// message queue syscall numbers
+#define DSOS_CALL_MQ_CREATE   11
+#define DSOS_CALL_MQ_SEND     12
+#define DSOS_CALL_MQ_RECEIVE  13
+#define DSOS_CALL_MQ_DESTROY  14
+
 
 //resources
 #define DSOS_CREATE 0x1

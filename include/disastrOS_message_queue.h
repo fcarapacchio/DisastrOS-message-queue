@@ -5,10 +5,12 @@
 #include "disastrOS_message.h"
 #include "disastrOS_resource.h"
 
-// Stato della message queue
+// Message queue status
 typedef enum {
-  MQ_OPEN = 0,
-  MQ_CLOSED
+  MQ_INVALID = -1,   
+  MQ_OPEN    = 0,    
+  MQ_CLOSING = 1,   
+  MQ_CLOSED  = 2     
 } MQStatus;
 
 // Message Queue kernel object
@@ -17,37 +19,39 @@ typedef struct MessageQueue {
   // MUST BE FIRST if treated as a Resource
   Resource resource;
 
-  // lista dei messaggi presenti nella queue
-  ListHead messages;        // lista di Message
+  // message queue global list 
+  ListItem list;
 
-  // processi bloccati in receive
-  ListHead waiting_receivers; // lista di PCBPtr o MQDescriptorPtr
+  // queue message list
+  ListHead messages;        
 
-  // processi bloccati in send (queue piena)
-  ListHead waiting_senders;   // opzionale ma corretto
+  // blocked processes in receive (queue is empty)
+  ListHead waiting_receivers;
 
-  int max_messages;         // capacità massima
-  int current_messages;     // messaggi presenti
+  // blocked processes in send (queue is full)
+  ListHead waiting_senders;
+
+  int max_messages;
+  int current_messages;
+  int queue_id;
 
   MQStatus status;
 
 } MessageQueue;
 
-// inizializzazione sottosistema MQ
+// initialize message queue
 void MessageQueue_init();
 
-// creazione di una nuova message queue
+// create new message queue
 MessageQueue* MessageQueue_create(int max_messages);
 
-// distruzione (fallisce se ancora in uso)
+// destroy message queue
 void MessageQueue_destroy(MessageQueue* mq);
 
-// invio messaggio
-// ritorna 0 se ok, <0 se errore o blocco
+// send message
 void MessageQueue_send(MessageQueue* mq, Message* msg, PCB* sender);
 
-// ricezione messaggio
-// ritorna Message* o NULL se bloccante
+// receive message
 Message* MessageQueue_receive(MessageQueue* mq, PCB* receiver);
 
 // debug
