@@ -12,6 +12,7 @@ typedef struct {
   int id;
   ResourceType type;
   int ref_count;    //number of open descriptors
+  void* resource_data;   // pointer to resource-specific data (like a MessageQueue)
   ListHead descriptors_ptrs;
 } Resource;
 
