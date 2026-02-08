@@ -62,5 +62,7 @@ void internal_wait(){
 
   // pick the next
   PCB* next_running= (PCB*) List_detach(&ready_list, ready_list.first);
+  assert(next_running);
+  next_running->status = Running;
   running=next_running;
 }

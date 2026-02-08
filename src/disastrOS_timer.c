@@ -28,6 +28,9 @@ TimerItem* TimerItem_alloc(int awakening_time, PCB* pcb){
   item->list.next=0;
   item->pcb=pcb;
   item->awakening_time=awakening_time;
+
+  pcb->timer = item;  //link the timer to the PCB
+  
   return item;
 }
 

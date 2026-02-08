@@ -19,6 +19,10 @@ void internal_spawn(){
 
   new_pcb->status=Ready;
 
+  List_init(&new_pcb->descriptors);  // init descriptors list for the new process
+  new_pcb->last_fd = 0;
+  new_pcb->timer = 0;
+
   // sets the parent of the newly created process to the running process
   new_pcb->parent=running;
   
@@ -39,6 +43,7 @@ void internal_spawn(){
   new_pcb->cpu_state.uc_stack.ss_flags = 0;
   sigemptyset(&new_pcb->cpu_state.uc_sigmask);
   new_pcb->cpu_state.uc_link = &main_context;
+
   void (*new_function) (void*)= (void(*)(void*))  running->syscall_args[0];
   makecontext(&new_pcb->cpu_state, (void(*)())  new_function, 1, (void*)running->syscall_args[1]);
 }
