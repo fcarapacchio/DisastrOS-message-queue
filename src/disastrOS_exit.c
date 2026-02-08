@@ -77,8 +77,14 @@ void internal_exit(){
       List_detach(&running->descriptors, (ListItem*) des);
       Resource* res=des->resource;
       List_detach(&res->descriptors_ptrs, (ListItem*) des->ptr);
+      res->ref_count--;
       DescriptorPtr_free(des->ptr);
       Descriptor_free(des);
+
+      if(res->ref_count == 0){
+        List_detach(&resources_list, (ListItem*) res);
+        Resource_free(des);
+      }
     }
     
     // the process finally dies

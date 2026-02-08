@@ -40,7 +40,7 @@ void internal_openResource(){
      return;
   }
   
-  if (open_mode&DSOS_EXCL && res->descriptors_ptrs.size){
+  if (open_mode&DSOS_EXCL && res->ref_count>0){
      running->syscall_retvalue=DSOS_ERESOURCENOEXCL;
      return;
   }
