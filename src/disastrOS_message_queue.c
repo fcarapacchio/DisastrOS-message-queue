@@ -7,16 +7,15 @@
 #include "pool_allocator.h"
 
 #define MESSAGE_QUEUE_SIZE sizeof(MessageQueue)
-#define MESSAGE_QUEUE_BUFFER_SIZE MESSAGE_QUEUE_SIZE*MAX_MESSAGE_QUEUES  //dubbio: devo considerare anche la dimensione dei messaggi?
-
+#define MESSAGE_QUEUE_BUFFER_SIZE MESSAGE_QUEUE_SIZE*MAX_MESSAGE_QUEUES
 static char _message_queue_buffer[MESSAGE_QUEUE_BUFFER_SIZE];
 /*
- * Pool allocator per le message queue
+ * message queue pool allocator
  */
 static PoolAllocator message_queue_allocator;
 
 /*
- * Inizializzazione globale del sottosistema MQ
+ * message queue initialization
  */
 void message_queue_init() {
   PoolAllocatorResult result = PoolAllocator_init(&message_queue_allocator,
@@ -24,10 +23,14 @@ void message_queue_init() {
                                MAX_MESSAGE_QUEUES,
                                _message_queue_buffer,
                                MESSAGE_QUEUE_BUFFER_SIZE);
-    assert(!result);  //
+    assert(!result);  
 }
 
 MessageQueue* MessageQueue_create(int max_messages) {
+  if (max_messages<=0 || max_messages>MAX_MESSAGES_PER_QUEUE){
+    return 0;
+  }
+
   MessageQueue* mq = (MessageQueue*)PoolAllocator_getBlock(&message_queue_allocator);
 
   if (!mq)
@@ -37,64 +40,63 @@ MessageQueue* MessageQueue_create(int max_messages) {
   List_init(&mq->waiting_receivers);
   List_init(&mq->waiting_senders);
 
-  mq->max_messages = MAX_MESSAGES_PER_QUEUE;
+  mq->max_messages = max_messages;
   mq->current_messages = 0;
 
   return mq;
 }
 
-void MessageQueue_send(MessageQueue* mq, Message* msg, PCB* sender) {
+void MessageQueue_send(MessageQueue* mq, Message* msg) {
   if (!mq || !msg)
     return;
 
-    if (mq->current_messages >= mq->max_messages) {
-    PCB_block(sender);
-    List_insert(&mq->waiting_senders, mq->waiting_senders.last, (ListItem*)sender);
-    disastrOS_schedule();
+    while (mq->current_messages >= mq->max_messages) {
+      PCB* current = running;
+      current->status = Waiting;
+      List_insert(&mq->waiting_senders, mq->waiting_senders.last, (ListItem*)current);
+      disastrOS_schedule();
 }
 
-  List_insert(&mq->messages,
-              mq->messages.last,
-              (ListItem*)msg);
+  List_insert(&mq->messages, mq->messages.last, (ListItem*)msg);
 
     mq->current_messages++;
 
   /*
-   * Se qualcuno stava aspettando, sveglialo
+   * if someone is waiting, wake him up
    */
   if (mq->waiting_receivers.first) {
-    PCB* pcb = (PCB*)List_detach(&mq->waiting_receivers,
-                                 mq->waiting_receivers.first);
-    PCB_unblock(pcb);
+    PCB* pcb = (PCB*)List_detach(&mq->waiting_receivers, mq->waiting_receivers.first);
+    pcb->status = Ready;
+    List_insert(&ready_list, ready_list.last, (ListItem*) pcb);
   }
 }
 
 
-Message* MessageQueue_receive(MessageQueue* mq, PCB* receiver) {
+Message* MessageQueue_receive(MessageQueue* mq) {
   if (!mq)
     return 0;
 
   /*
-   * Coda vuota → blocca il processo corrente
+   * queue is empty, block the current process
    */
-  if (!mq->messages.first) {
+  while (!mq->messages.first) {
     PCB* current = running;
-    PCB_block(current);
-
-    List_insert(&mq->waiting_receivers,
-            mq->waiting_receivers.last,
-            (ListItem*) current);
-
+    current->status = Waiting;
+    List_insert(&mq->waiting_receivers, mq->waiting_receivers.last, (ListItem*) current);
     disastrOS_schedule();
   }
 
   /*
-   * A questo punto un messaggio c'è
+   * there is a message
    */
-  Message* msg =
-      (Message*)List_detach(&mq->messages,
-                            mq->messages.first);
+  Message* msg = (Message*)List_detach(&mq->messages, mq->messages.first);
 mq->current_messages--;
+
+if (mq->waiting_senders.first){
+  PCB* pcb = (PCB*) List_detach(&mq->waiting_senders, mq->waiting_senders.first);
+  pcb->status = Ready;
+  List_insert(&ready_list, ready_list.last, (ListItem*) pcb);
+}
 
   return msg;
 }
@@ -104,7 +106,7 @@ void MessageQueue_destroy(MessageQueue* mq) {
     return;
 
   /*
-   * Libera eventuali messaggi rimasti
+   * free the remaining messages
    */
   ListItem* it = mq->messages.first;
   while (it) {

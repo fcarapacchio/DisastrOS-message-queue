@@ -1,75 +1,60 @@
 #include "disastrOS_message.h"
 #include "pool_allocator.h"
 #include "disastrOS_constants.h"
+#include "disastrOS.h"
+#include "disastrOS_syscalls.h"
 
 #include <string.h>
 #include <stdio.h>
 
-// ----------------------
-// Pool allocator setup
-// ----------------------
 
-// Numero massimo di messaggi simultanei
+// max number of simultaneous messages
 #ifndef DSOS_MAX_MESSAGES
 #define DSOS_MAX_MESSAGES 128
 #endif
 
-// Dimensione massima di un messaggio
-#ifndef DSOS_MAX_MESSAGE_SIZE
-#define DSOS_MAX_MESSAGE_SIZE 256
-#endif
 
-// Buffer di memoria per i messaggi
 static char messages_buffer[
-  DSOS_MAX_MESSAGES * (sizeof(Message) + DSOS_MAX_MESSAGE_SIZE)
+  DSOS_MAX_MESSAGES * (MESSAGE_SIZE + MESSAGE_MAX_SIZE)
 ];
 
-// Pool allocator globale per i Message
+// message pool allocator
 static PoolAllocator message_allocator;
 
-// ----------------------
-// Inizializzazione
-// ----------------------
-
+/*
+ * message initialization
+ */
 void Message_init() {
   PoolAllocator_init(
     &message_allocator,
-    sizeof(Message) + DSOS_MAX_MESSAGE_SIZE,
+    MESSAGE_SIZE + MESSAGE_MAX_SIZE,
     DSOS_MAX_MESSAGES,
     messages_buffer,
     sizeof(messages_buffer)
   );
 }
 
-// ----------------------
-// Allocazione
-// ----------------------
 
 Message* Message_alloc(int size) {
-  if (size <= 0 || size > DSOS_MAX_MESSAGE_SIZE)
+  if (size <= 0 || size > MESSAGE_MAX_SIZE)
     return 0;
 
   Message* msg = (Message*) PoolAllocator_getBlock(&message_allocator);
   if (!msg)
     return 0;
 
-  // Il payload è subito dopo la struct Message
   msg->size = size;
   msg->data = (char*)(msg + 1);
 
-  // Azzeriamo il payload per sicurezza
   memset(msg->data, 0, size);
 
-  // inizializza i puntatori di lista
   msg->list.prev = 0;
   msg->list.next = 0;
 
+  msg->sender = running;
+
   return msg;
 }
-
-// ----------------------
-// Deallocazione
-// ----------------------
 
 void Message_free(Message* msg) {
   if (!msg)
@@ -77,10 +62,6 @@ void Message_free(Message* msg) {
 
   PoolAllocator_releaseBlock(&message_allocator, msg);
 }
-
-// ----------------------
-// Debug
-// ----------------------
 
 void Message_print(Message* msg) {
   if (!msg) {
