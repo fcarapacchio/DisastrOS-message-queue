@@ -7,16 +7,16 @@
 
 // message queue
 #define MESSAGE_QUEUE_SIZE sizeof(MessageQueue)
-#define MAX_MESSAGE_QUEUES        32
-#define MAX_MESSAGES_PER_QUEUE   16
+#define MAX_MESSAGE_QUEUES        32    // max number of message queue
+#define MAX_MESSAGES_PER_QUEUE   16     // max number of message for message queue
 #define MESSAGE_QUEUE_BUFFER_SIZE (MAX_MESSAGE_QUEUES * MESSAGE_QUEUE_SIZE)
 #define DSOS_MQ_BLOCKING    0x1
 #define DSOS_MQ_NONBLOCKING 0x2
 
 // message
 #define MESSAGE_SIZE sizeof(Message)
-#define MESSAGE_BUFFER_SIZE (MAX_MESSAGES_PER_QUEUE * MAX_MESSAGE_QUEUES * MESSAGE_SIZE) //
-#define MESSAGE_MAX_SIZE         256
+#define MESSAGE_BUFFER_SIZE (MAX_MESSAGES_PER_QUEUE * MAX_MESSAGE_QUEUES * MESSAGE_SIZE)
+#define MESSAGE_MAX_SIZE         256  // max payload
 
 #define STACK_SIZE        16384
 

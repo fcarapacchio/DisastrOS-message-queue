@@ -118,3 +118,33 @@ void MessageQueue_destroy(MessageQueue* mq) {
   PoolAllocator_releaseBlock(&message_queue_allocator, mq);
 }
 
+// prints the message queue status, focusing on messages and waiting sending/receiving processes
+void MessageQueue_print_status(MessageQueue* mq){
+  printf("MQ id=%d, max=%d, current=%d, status=%d\n",
+           mq->queue_id, mq->max_messages, mq->current_messages, mq->status);
+    
+    printf("Messages:\n");
+    ListItem* it = mq->messages.first;
+    while(it) {
+        Message* msg = (Message*)it;
+        printf("  size=%d, data[0]=%c\n", msg->size, msg->data[0]);
+        it = it->next;
+    }
+
+    printf("Waiting receivers:\n");
+    it = mq->waiting_receivers.first;
+    while(it) {
+        PCB* pcb = (PCB*)it;
+        printf("  PID=%d\n", pcb->pid);
+        it = it->next;
+    }
+
+    printf("Waiting senders:\n");
+    it = mq->waiting_senders.first;
+    while(it) {
+        PCB* pcb = (PCB*)it;
+        printf("  PID=%d\n", pcb->pid);
+        it = it->next;
+    }
+}
+

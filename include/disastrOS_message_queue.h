@@ -49,10 +49,10 @@ MessageQueue* MessageQueue_create(int max_messages);
 void MessageQueue_destroy(MessageQueue* mq);
 
 // send message
-void MessageQueue_send(MessageQueue* mq, Message* msg, PCB* sender);
+void MessageQueue_send(MessageQueue* mq, Message* msg);
 
 // receive message
-Message* MessageQueue_receive(MessageQueue* mq, PCB* receiver);
+Message* MessageQueue_receive(MessageQueue* mq);
 
 // debug
-void MessageQueue_print(MessageQueue* mq);
+void MessageQueue_print_status(MessageQueue* mq);

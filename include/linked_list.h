@@ -15,7 +15,7 @@ void List_init(ListHead* list);
 
 ListItem* List_find(ListHead* head, ListItem* item);
 
-ListItem* List_insert(ListHead* head, ListItem* previous, ListItem* item); // inserts an item at the end of the list
+ListItem* List_insert(ListHead* head, ListItem* previous, ListItem* item); // inserts an item
 
 ListItem* List_detach(ListHead* list, ListItem* item); // removes an item from the list
 
