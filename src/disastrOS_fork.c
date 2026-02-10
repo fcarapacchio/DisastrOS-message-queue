@@ -40,6 +40,7 @@ while(aux){
 
   // Link descriptor and pointer
   child_des->ptr=child_desptr;
+  child_desptr->descriptor = child_des;
 
   // insert into child's descriptor list
   List_insert(&new_pcb->descriptors, new_pcb->descriptors.last, (ListItem*) child_des);

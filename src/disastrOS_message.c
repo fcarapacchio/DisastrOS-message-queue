@@ -10,31 +10,29 @@
 
 // max number of simultaneous messages
 #ifndef DSOS_MAX_MESSAGES
-#define DSOS_MAX_MESSAGES 128
+#define DSOS_MAX_MESSAGES (MAX_MESSAGES_PER_QUEUE * MAX_MESSAGE_QUEUES)
 #endif
 
 
-static char messages_buffer[
-  DSOS_MAX_MESSAGES * (MESSAGE_SIZE + MESSAGE_MAX_SIZE)
-];
+static char messages_buffer[MESSAGE_BUFFER_SIZE];
 
 // message pool allocator
 static PoolAllocator message_allocator;
 
-/*
- * message initialization
- */
+
+//message initialization
 void Message_init() {
-  PoolAllocator_init(
+  PoolAllocatorResult res = PoolAllocator_init(
     &message_allocator,
     MESSAGE_SIZE + MESSAGE_MAX_SIZE,
     DSOS_MAX_MESSAGES,
     messages_buffer,
     sizeof(messages_buffer)
   );
+  assert(res == Success);
 }
 
-
+// allocate a new message with a specific payload size
 Message* Message_alloc(int size) {
   if (size <= 0 || size > MESSAGE_MAX_SIZE)
     return 0;
@@ -56,6 +54,7 @@ Message* Message_alloc(int size) {
   return msg;
 }
 
+// free a previously allocated message
 void Message_free(Message* msg) {
   if (!msg)
     return;

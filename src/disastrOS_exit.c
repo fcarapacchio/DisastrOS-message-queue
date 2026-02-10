@@ -83,7 +83,7 @@ void internal_exit(){
 
       if(res->ref_count == 0){
         List_detach(&resources_list, (ListItem*) res);
-        Resource_free(des);
+        Resource_free(res);
       }
     }
     

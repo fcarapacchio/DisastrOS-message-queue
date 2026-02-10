@@ -31,11 +31,8 @@ void internal_closeResource(){
   DescriptorPtr_free(desptr);
   
   //check and update reference counter
-  if (res->ref_count > 0) {
-      res->ref_count--; 
-  } else {
-      printf("[Warning] resource ref_count was already 0 for resource id %d\n", res->id);
-  }
+  assert(res->ref_count > 0);
+  res->ref_count--;
 
   running->syscall_retvalue=0;
 }

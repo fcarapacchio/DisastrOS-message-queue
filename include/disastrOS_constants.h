@@ -44,8 +44,9 @@
 #define DSOS_EMQFULL -14   // queue is full
 #define DSOS_EMQEMPTY -15  // queue is empty
 #define DSOS_EMQNOTFOUND -16  // queue not found
-#define DSOS_EMQINVALIDFD -17  // queue fd invalid
+#define DSOS_EMQINVALID -17  // queue  invalid
 #define DSOS_EMQTIMEOUT -18  // timeout nella receive
+#define DSOS_EERROR -19 // generic error
 
 // syscall numbers
 #define DSOS_MAX_SYSCALLS 32
