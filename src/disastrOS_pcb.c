@@ -41,35 +41,54 @@ void PCB_init(){
 
 PCB* PCB_alloc() {
   PCB* pcb = (PCB*) PoolAllocator_getBlock(&_pcb_allocator);
+  if (!pcb) return 0;
+
   pcb->list.prev=0;
   pcb->list.next=0;
-  pcb->pid=last_pid; last_pid++;
+
+  pcb->pid=last_pid; 
+  last_pid++;
+
   pcb->return_value=0;
   pcb->status=Invalid;
   pcb->last_fd=0;
+
   pcb->signals=0;
   pcb->signals_mask=0xFFFFFFFF;
-  pcb->status=Invalid;
+
   List_init(&pcb->descriptors);
+
   pcb->parent=0;
   pcb->timer=0;
+
   List_init(&pcb->children);
+
   return pcb;
 }
 
 int PCB_free(PCB* pcb){
+  if(!pcb) return -1;
+
   return PoolAllocator_releaseBlock(&_pcb_allocator, pcb);
 }
 
 PCBPtr* PCBPtr_alloc(PCB* pcb) {
   PCBPtr* pcb_ptr=(PCBPtr*) PoolAllocator_getBlock(&_pcb_ptr_allocator);
+
+  if(!pcb_ptr){
+    return 0;
+  }
+
   pcb_ptr->list.prev=0;
   pcb_ptr->list.next=0;
   pcb_ptr->pcb=pcb;
+
   return pcb_ptr;
 }
 
 int PCBPtr_free(PCBPtr* pcb_ptr){
+  if(!pcb_ptr) return -1;
+  
   return PoolAllocator_releaseBlock(&_pcb_ptr_allocator, pcb_ptr);
 }
 

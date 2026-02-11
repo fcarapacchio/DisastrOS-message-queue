@@ -8,13 +8,14 @@
 
 
 void internal_openResource(){
-  //1 get from the PCB the resource id of the resource to open
+
+  // get from the PCB the resource id of the resource to open
   int id=running->syscall_args[0];
   int type=running->syscall_args[1];
   int open_mode=running->syscall_args[2];
 
   Resource* res=ResourceList_byId(&resources_list, id);
-  //2 if the resource is opened in CREATE mode, create the resource
+  // if the resource is opened in CREATE mode, create the resource
   //  and return an error if the resource is already existing
   // otherwise fetch the resource from the system list, and if you don't find it
   // throw an error
@@ -45,7 +46,7 @@ void internal_openResource(){
      return;
   }
   
-  //5 create the descriptor for the resource in this process, and add it to
+  // create the descriptor for the resource in this process, and add it to
   //  the process descriptor list. Assign to the resource a new fd
   Descriptor* des=Descriptor_alloc(running->last_fd, res, running);
   if (! des){
@@ -53,18 +54,25 @@ void internal_openResource(){
      return;
   }
 
-  running->last_fd++; // we increment the fd value for the next call
-
+  // allocate descriptor pointer
   DescriptorPtr* desptr=DescriptorPtr_alloc(des);
+  if (!desptr){
+    Descriptor_free(des);
+    running->syscall_retvalue = DSOS_ERESOURCENOFD;
+    return;
+  }
+
+  des->ptr=desptr; // link descriptor with descriptor pointer
+  
+  // insert descriptor into process descriptor list
   List_insert(&running->descriptors, running->descriptors.last, (ListItem*) des);
   
-  //6 add to the resource, in the descriptor ptr list, a pointer to the newly
-  //  created descriptor
-  des->ptr=desptr;
+  // insert descriptor pointer into resource descriptor list
   List_insert(&res->descriptors_ptrs, res->descriptors_ptrs.last, (ListItem*) desptr);
 
   res->ref_count++; //update reference counter
 
-  // return the FD of the new descriptor to the process
-  running->syscall_retvalue = des->fd;
+  running->last_fd++; // we increment the fd value for the next call
+  
+  running->syscall_retvalue = des->fd; // return the FD of the new descriptor to the process
 }

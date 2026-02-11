@@ -22,14 +22,13 @@ void internal_sleep(){
     return;
   } 
   running->status=Waiting;
-  running->timer = 0;
+  running->timer = new_timer  ;
+  
   List_insert(&waiting_list, waiting_list.last, (ListItem*) running);
-  if (ready_list.first)
-    running=(PCB*) List_detach(&ready_list, ready_list.first);
-  else {
-    running=0;
-    printf ("they are all sleeping\n");
-    disastrOS_printStatus();
-  }
+  
+  internal_schedule();  //let the scheduler pick the next ready process
+
+  running->syscall_retvalue = 0; //indicate success
+
 }
 
