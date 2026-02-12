@@ -29,7 +29,7 @@ void internal_mq_destroy() {
         PCB* pcb = (PCB*) List_detach(&mq->waiting_receivers, mq->waiting_receivers.first);
         pcb->status = Ready;
         pcb->syscall_retvalue = DSOS_EERROR;
-        List_pushBack(&ready_list, (ListItem*) pcb);
+        List_insert(&ready_list, ready_list.last, (ListItem*)pcb);
     }
 
     // wake up all blocked senders
@@ -37,7 +37,7 @@ void internal_mq_destroy() {
         PCB* pcb = (PCB*) List_detach(&mq->waiting_senders, mq->waiting_senders.first);
         pcb->status = Ready;
         pcb->syscall_retvalue = DSOS_EERROR;
-        List_pushBack(&ready_list, (ListItem*) pcb);
+        List_insert(&ready_list, ready_list.last, (ListItem*)pcb);
     }
 
     // free the remaining messages

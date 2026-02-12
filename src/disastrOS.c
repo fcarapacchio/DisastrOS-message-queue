@@ -12,7 +12,6 @@
 #include "disastrOS_timer.h"
 #include "disastrOS_resource.h"
 #include "disastrOS_descriptor.h"
-#include <asm-generic/siginfo.h>
 
 FILE* log_file=NULL;
 PCB* init_pcb;
@@ -25,8 +24,6 @@ ListHead timer_list;
 
 // a resource can be a device, a file or an ipc thing
 ListHead resources_list;
-
-// TODO: message queue global list
 
 SyscallFunctionType syscall_vector[DSOS_MAX_SYSCALLS];
 int syscall_numarg[DSOS_MAX_SYSCALLS];
@@ -183,10 +180,10 @@ void disastrOS_start(void (*f)(void*), void* f_args, char* logfile){
   syscall_numarg[DSOS_CALL_MQ_CREATE]  = 2;
 
   syscall_vector[DSOS_CALL_MQ_SEND]    = internal_mq_send;
-  syscall_numarg[DSOS_CALL_MQ_SEND]    = 2;
+  syscall_numarg[DSOS_CALL_MQ_SEND]    = 3;
 
   syscall_vector[DSOS_CALL_MQ_RECEIVE] = internal_mq_receive;
-  syscall_numarg[DSOS_CALL_MQ_RECEIVE] = 2;
+  syscall_numarg[DSOS_CALL_MQ_RECEIVE] = 3;
 
   syscall_vector[DSOS_CALL_MQ_DESTROY] = internal_mq_destroy;
   syscall_numarg[DSOS_CALL_MQ_DESTROY] = 1;
@@ -307,12 +304,12 @@ int disastrOS_mq_create(int mq_id, int size) {
     return disastrOS_syscall(DSOS_CALL_MQ_CREATE, mq_id, size);
 }
 
-int disastrOS_mq_send(int mq_id, void* msg, int msg_size) {
-    return disastrOS_syscall(DSOS_CALL_MQ_SEND, mq_id, msg, msg_size);
+int disastrOS_mq_send(int mq_id, void* msg, int size) {
+    return disastrOS_syscall(DSOS_CALL_MQ_SEND, mq_id, msg, size);
 }
 
-int disastrOS_mq_receive(int mq_id, void* buffer, int max_size) {
-    return disastrOS_syscall(DSOS_CALL_MQ_RECEIVE, mq_id, buffer, max_size);
+int disastrOS_mq_receive(int mq_id, void* msg_buffer, int size) {
+    return disastrOS_syscall(DSOS_CALL_MQ_RECEIVE, mq_id, msg_buffer, size);
 }
 
 int disastrOS_mq_destroy(int mq_id) {

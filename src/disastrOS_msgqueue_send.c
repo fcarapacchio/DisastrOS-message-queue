@@ -7,7 +7,13 @@
 
 void internal_mq_send() {
     int queue_id = running->syscall_args[0];
-    Message* msg = (Message*) running->syscall_args[1];
+    void* user_buffer = (void*) running->syscall_args[1];
+    int size = running->syscall_args[2];
+
+    if (size <= 0) {
+    running->syscall_retvalue = DSOS_EERROR;
+    return;
+  }
 
     // find the queue
     Resource* res = ResourceList_byId(&resources_list, queue_id);
@@ -19,12 +25,23 @@ void internal_mq_send() {
     MessageQueue* mq = (MessageQueue*) res;
 
     // if queue is full, block the process
-    if (mq->current_messages >= mq->max_messages) {
+    while(mq->current_messages >= mq->max_messages) {
+        if (mq->status != MQ_OPEN) {
+            running->syscall_retvalue = DSOS_EERROR;
+            return;
+    }
         running->status = Waiting;
         List_insert(&mq->waiting_senders,mq->waiting_senders.last, (ListItem*) running);
         internal_schedule();
+    }
+
+    Message* msg = Message_alloc(size);
+    if(!msg){
+        running->syscall_retvalue = DSOS_EERROR;
         return;
     }
+
+    memcpy(msg->data, user_buffer, size);
 
     // insert the message
     List_insert(&mq->messages, mq->messages.last, (ListItem*)msg);
@@ -32,9 +49,9 @@ void internal_mq_send() {
 
     // wake up a blocked receiver
     if (mq->waiting_receivers.first) {
-        PCB* receiver = (PCB*) List_popFront(&mq->waiting_receivers);
-        receiver->status = Ready;
-        List_insert(&ready_list, ready_list.last, (ListItem*) receiver);
+        PCB* pcb = (PCB*) List_detach(&mq->waiting_receivers, mq->waiting_receivers.first);
+        pcb->status = Ready;
+        List_insert(&ready_list, ready_list.last, (ListItem*) pcb);
     }
 
     running->syscall_retvalue = 0; // success

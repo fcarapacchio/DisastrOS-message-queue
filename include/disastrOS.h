@@ -46,9 +46,5 @@ int disastrOS_mq_destroy(int queue_id);
 int disastrOS_mq_send(int queue_id, void* msg, int size);
 int disastrOS_mq_receive(int queue_id, void* msg_buffer, int size);
 
-// debug/query queue
-int disastrOS_msgQueueLength(int queue_id);  // queue size
-int disastrOS_msgQueueCapacity(int queue_id);
-
 // debug function, prints the state of the internal system
 void disastrOS_printStatus();
