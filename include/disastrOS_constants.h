@@ -47,6 +47,9 @@
 #define DSOS_EMQINVALID -17  // queue  invalid
 #define DSOS_EMQTIMEOUT -18  // timeout nella receive
 #define DSOS_EERROR -19 // generic error
+#define DSOS_EMQCREATE -20 // error in queue creation
+#define DSOS_EMQEXISTS -21 // message queue already exists
+#define DSOS_EMQCLOSED -22 // message queue is closed
 
 // syscall numbers
 #define DSOS_MAX_SYSCALLS 32

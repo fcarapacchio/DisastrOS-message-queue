@@ -24,4 +24,3 @@ void internal_mq_send();
 void internal_mq_receive();
 void internal_mq_destroy();
 
-

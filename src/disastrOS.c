@@ -178,6 +178,19 @@ void disastrOS_start(void (*f)(void*), void* f_args, char* logfile){
   syscall_vector[DSOS_CALL_DESTROY_RESOURCE]     = internal_destroyResource;
   syscall_numarg[DSOS_CALL_DESTROY_RESOURCE]     = 1;
 
+  // add syscall_vector and syscall_numarg for mq functions
+  syscall_vector[DSOS_CALL_MQ_CREATE]  = internal_mq_create;
+  syscall_numarg[DSOS_CALL_MQ_CREATE]  = 2;
+
+  syscall_vector[DSOS_CALL_MQ_SEND]    = internal_mq_send;
+  syscall_numarg[DSOS_CALL_MQ_SEND]    = 2;
+
+  syscall_vector[DSOS_CALL_MQ_RECEIVE] = internal_mq_receive;
+  syscall_numarg[DSOS_CALL_MQ_RECEIVE] = 2;
+
+  syscall_vector[DSOS_CALL_MQ_DESTROY] = internal_mq_destroy;
+  syscall_numarg[DSOS_CALL_MQ_DESTROY] = 1;
+
   syscall_vector[DSOS_CALL_SHUTDOWN]      = internal_shutdown;
   syscall_numarg[DSOS_CALL_SHUTDOWN]      = 0;
 
@@ -288,6 +301,22 @@ int disastrOS_closeResource(int fd) {
 
 int disastrOS_destroyResource(int resource_id) {
   return disastrOS_syscall(DSOS_CALL_DESTROY_RESOURCE, resource_id);
+}
+
+int disastrOS_mq_create(int mq_id, int size) {
+    return disastrOS_syscall(DSOS_CALL_MQ_CREATE, mq_id, size);
+}
+
+int disastrOS_mq_send(int mq_id, void* msg, int msg_size) {
+    return disastrOS_syscall(DSOS_CALL_MQ_SEND, mq_id, msg, msg_size);
+}
+
+int disastrOS_mq_receive(int mq_id, void* buffer, int max_size) {
+    return disastrOS_syscall(DSOS_CALL_MQ_RECEIVE, mq_id, buffer, max_size);
+}
+
+int disastrOS_mq_destroy(int mq_id) {
+    return disastrOS_syscall(DSOS_CALL_MQ_DESTROY, mq_id);
 }
 
 

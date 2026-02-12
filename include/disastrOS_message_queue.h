@@ -42,17 +42,10 @@ typedef struct MessageQueue {
 // initialize message queue
 void MessageQueue_init();
 
-// create new message queue
-MessageQueue* MessageQueue_create(int max_messages);
-
-// destroy message queue
-void MessageQueue_destroy(MessageQueue* mq);
-
-// send message
-void MessageQueue_send(MessageQueue* mq, Message* msg);
-
-// receive message
-Message* MessageQueue_receive(MessageQueue* mq);
+MessageQueue* MessageQueue_alloc(int queue_id, int size);
+void MessageQueue_free(MessageQueue* mq);
 
 // debug
+void MessageQueue_printAll();
+void MessageQueue_print_messages(MessageQueue* mq);
 void MessageQueue_print_status(MessageQueue* mq);

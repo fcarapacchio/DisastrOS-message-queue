@@ -17,7 +17,7 @@ static PoolAllocator message_queue_allocator;
 /*
  * message queue initialization
  */
-void message_queue_init() {
+void MessageQueue_init() {
   PoolAllocatorResult result = PoolAllocator_init(&message_queue_allocator,
                                MESSAGE_QUEUE_SIZE, 
                                MAX_MESSAGE_QUEUES,
@@ -26,137 +26,104 @@ void message_queue_init() {
     assert(!result);  
 }
 
-MessageQueue* MessageQueue_create(int max_messages) {
-  if (max_messages<=0 || max_messages>MAX_MESSAGES_PER_QUEUE){
-    return 0;
-  }
+MessageQueue* MessageQueue_alloc(int queue_id, int size) {
 
-  MessageQueue* mq = (MessageQueue*)PoolAllocator_getBlock(&message_queue_allocator);
+  MessageQueue* mq = (MessageQueue*) PoolAllocator_getBlock(&message_queue_allocator);
 
   if (!mq)
     return 0;
-  
+
   // Resource part
-  mq->resource.id = generate_unique_mq_id();
+  mq->resource.id = queue_id;
   mq->resource.type = RESOURCE_MESSAGE_QUEUE;
   mq->resource.ref_count = 0;
-  mq->resource.resource_data = mq;
   List_init(&mq->resource.descriptors_ptrs);
+
+  // init internal list
+  mq->list.prev = mq->list.next = 0;
   
   // Message Queue part
   List_init(&mq->messages);
   List_init(&mq->waiting_receivers);
   List_init(&mq->waiting_senders);
 
-  mq->max_messages = max_messages;
+  mq->max_messages = size;
   mq->current_messages = 0;
-  mq->queue_id = mq->resource.id;
+  mq->queue_id = queue_id;
   mq->status = MQ_OPEN;
-  
-  // insert the message queue in the resource global list
-  List_insert(&resources_list, resources_list.last, (ListItem*) &mq->resource);
 
   return mq;
 }
 
-// send a message to the queue, blocking if the message queue is full
-void MessageQueue_send(MessageQueue* mq, Message* msg) {
-  if (!mq || !msg || mq->status != MQ_OPEN)
-    return;
-    
-    while (mq->current_messages >= mq->max_messages) {
-      if(mq->status != MQ_OPEN){  //if the message queue is not open, return an error
-        running->syscall_retvalue = DSOS_EERROR;
-        return;
-      }
-      PCB* current = running;
-      current->status = Waiting;
-      List_insert(&mq->waiting_senders, mq->waiting_senders.last, (ListItem*)current);
-      disastrOS_schedule();
-}
-  
-  List_insert(&mq->messages, mq->messages.last, (ListItem*)msg); //add message to the queue
-  mq->current_messages++;
 
-  // if a receiver is blocked, wake him up
-  if (mq->waiting_receivers.first) {
-    PCB* pcb = (PCB*)List_detach(&mq->waiting_receivers, mq->waiting_receivers.first);
-    pcb->status = Ready;
-    List_insert(&ready_list, ready_list.last, (ListItem*) pcb);
-  }
-}
-
-// receive a message from the queue, blocking if the message queue is empty
-Message* MessageQueue_receive(MessageQueue* mq) {
-  if (!mq)
-    return 0;
-
-  
-   // if queue is empty, block the current process
-    while (!mq->messages.first) {
-    if (mq->status != MQ_OPEN){
-      return 0;
-    }
-    PCB* current = running;
-    current->status = Waiting;
-    List_insert(&mq->waiting_receivers, mq->waiting_receivers.last, (ListItem*) current);
-    disastrOS_schedule();
-  }
-
-  // there is a message, take it
-  Message* msg = (Message*)List_detach(&mq->messages, mq->messages.first);
-mq->current_messages--;
-
-// if a sender is blocked, wake him up
-if (mq->waiting_senders.first){
-  PCB* pcb = (PCB*) List_detach(&mq->waiting_senders, mq->waiting_senders.first);
-  pcb->status = Ready;
-  List_insert(&ready_list, ready_list.last, (ListItem*) pcb);
-}
-
-  return msg;
-}
-
-// destroy a message queue, after waking up all blocked processes
-void MessageQueue_destroy(MessageQueue* mq) {
-  if (!mq || mq->status == MQ_CLOSED)
-    return;
-  
-  mq->status = MQ_CLOSING;
-
-  // wake up all blocked receivers
-  while (mq->waiting_receivers.first) {
-    PCB* pcb = (PCB*)List_detach(&mq->waiting_receivers, mq->waiting_receivers.first);
-    pcb->status = Ready;
-    pcb->syscall_retvalue = DSOS_EERROR;
-    List_insert(&ready_list, ready_list.last, (ListItem*)pcb);
-  }
-
-  //wake up all blocked senders
-   while (mq->waiting_senders.first) {
-    PCB* pcb = (PCB*)List_detach(&mq->waiting_senders, mq->waiting_senders.first);
-    pcb->status = Ready;
-    pcb->syscall_retvalue = DSOS_EERROR;
-    List_insert(&ready_list, ready_list.last, (ListItem*)pcb);
-  }
-
-  //free the remaining messages
- while (mq->messages.first) {
-    Message* msg = (Message*)List_detach(&mq->messages, mq->messages.first);
-    Message_free(msg);
-  }
-
-  mq->status = MQ_CLOSED;
-
-  List_detach(&resources_list, (ListItem*)&mq->resource); // remove the message queue from the global resource list
+void MessageQueue_free(MessageQueue* mq) {
+  assert(mq->waiting_receivers.first == 0); // there are no processes blocked in receive
+  assert(mq->waiting_senders.first == 0);   // there are no processes blocked in send
+  assert(mq->messages.first == 0);          // message queue is empty
+  assert(mq->resource.descriptors_ptrs.first == 0);
 
   PoolAllocator_releaseBlock(&message_queue_allocator, mq);
+  return;
 }
 
-// prints the message queue status, focusing on messages and waiting sending/receiving processes
+
+void MessageQueue_printAll() {
+
+  printf("=== Message Queues ===\n");
+
+  ListItem* item = resources_list.first;
+
+  int found = 0;
+
+  while (item) {
+    Resource* r = (Resource*) item;
+
+    if (r->type == RESOURCE_MESSAGE_QUEUE) {
+
+      MessageQueue* mq = (MessageQueue*) r;
+
+      printf("Queue ID: %d | status: %d | messages: %d/%d\n", mq->queue_id, mq->status, mq->current_messages, mq->max_messages);
+
+      found++;
+    }
+
+    item = item->next;
+  }
+
+  if (!found)
+    printf("No message queues present.\n");
+
+  printf("======================\n");
+}
+
+void MessageQueue_print_messages(MessageQueue* mq) {
+  if (!mq) {
+    printf("MessageQueue_print_messages: NULL queue\n");
+    return;
+  }
+
+  printf("Queue %d messages (%d/%d):\n", mq->queue_id, mq->current_messages, mq->max_messages);
+
+  if (!mq->messages.first) {
+    printf("  [empty]\n");
+    return;
+  }
+
+  ListItem* item = mq->messages.first;
+  int index = 0;
+
+  while (item) {
+    Message* msg = (Message*) item;
+
+    printf("  [%d] sender=%d size=%d\n", index, msg->sender->pid, msg->size);
+
+    item = item->next;
+    index++;
+  }
+}
+
 void MessageQueue_print_status(MessageQueue* mq){
-  printf("MQ id=%d, max=%d, current=%d, status=%d\n",
-           mq->queue_id, mq->max_messages, mq->current_messages, mq->status);
+  printf("MQ id=%d, max=%d, current=%d, status=%d\n", mq->queue_id, mq->max_messages, mq->current_messages, mq->status);
     
     printf("Messages:\n");
     ListItem* it = mq->messages.first;
@@ -183,10 +150,9 @@ void MessageQueue_print_status(MessageQueue* mq){
     }
 }
 
-// generate a unique message queue id
-static int last_mq_id = 0;
-int generate_unique_mq_id() {
-    return ++last_mq_id;
-}
+
+
+
+
 
 

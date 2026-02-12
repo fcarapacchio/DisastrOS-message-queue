@@ -39,16 +39,16 @@ int disastrOS_destroyResource(int resource_id);
 //=== MESSAGE QUEUE FUNCTIONS ===
 
 // create/destroy a message queue
-int disastrOS_createMessageQueue(int queue_id, int max_msgs);
-int disastrOS_destroyMessageQueue(int queue_id);
+int disastrOS_mq_create(int queue_id, int max_msgs);
+int disastrOS_mq_destroy(int queue_id);
 
 // send/receive messages
-int disastrOS_msgSend(int queue_fd, void* msg, int size);
-int disastrOS_msgReceive(int queue_fd, void* msg_buffer, int size, int timeout_ms);
+int disastrOS_mq_send(int queue_id, void* msg, int size);
+int disastrOS_mq_receive(int queue_id, void* msg_buffer, int size);
 
 // debug/query queue
-int disastrOS_msgQueueLength(int queue_fd);  // queue size
-int disastrOS_msgQueueCapacity(int queue_fd);
+int disastrOS_msgQueueLength(int queue_id);  // queue size
+int disastrOS_msgQueueCapacity(int queue_id);
 
 // debug function, prints the state of the internal system
 void disastrOS_printStatus();

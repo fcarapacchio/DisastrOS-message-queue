@@ -29,7 +29,6 @@ Resource* Resource_alloc(int id, int type){
   r->id=id;
   r->type=type;
   r->ref_count = 0;
-  r->resource_data = 0;
   List_init(&r->descriptors_ptrs);
   
   return r;
