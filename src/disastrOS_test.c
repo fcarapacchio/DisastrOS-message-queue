@@ -1,8 +1,10 @@
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <poll.h>
 
 #include "disastrOS.h"
+#include "disastrOS_msgqueuetest.h"
 
 // we need this to handle the sleep state
 void sleeperFunction(void* args){
@@ -30,11 +32,19 @@ void childFunction(void* args){
 }
 
 
+static int run_mq_test = 1;
+
 void initFunction(void* args) {
+  (void) args;
   disastrOS_printStatus();
   printf("hello, I am init and I just started\n");
-  disastrOS_spawn(sleeperFunction, 0);
   
+
+  if (run_mq_test) {
+    MsgQueueTest_runAll();
+  } else {
+  // disabled by default: on non-interactive stdin, sleeper loops on EOF and floods output
+  // disastrOS_spawn(sleeperFunction, 0);
 
   printf("I feel like to spawn 10 nice threads\n");
   int alive_children=0;
@@ -52,20 +62,28 @@ void initFunction(void* args) {
   disastrOS_printStatus();
   int retval;
   int pid;
-  while(alive_children>0 && (pid=disastrOS_wait(0, &retval))>=0){ 
+  while(alive_children>0 && (pid=disastrOS_wait(0, &retval))>=0){
     disastrOS_printStatus();
     printf("initFunction, child: %d terminated, retval:%d, alive: %d \n",
-	   pid, retval, alive_children);
+           pid, retval, alive_children);
     --alive_children;
   }
+  }
+
   printf("shutdown!");
   disastrOS_shutdown();
 }
 
 int main(int argc, char** argv){
   char* logfilename=0;
-  if (argc>1) {
-    logfilename=argv[1];
+  for (int i=1; i<argc; ++i) {
+    if (!strcmp(argv[i], "--mq-test")) {
+      run_mq_test = 1;
+    } else if (!strcmp(argv[i], "--legacy-test")) {
+      run_mq_test = 0;
+    } else {
+      logfilename=argv[i];
+    }
   }
   // we create the init process processes
   // the first is in the running variable

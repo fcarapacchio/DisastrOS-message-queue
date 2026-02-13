@@ -12,7 +12,7 @@ void internal_mq_receive() {
     int buffer_size = running->syscall_args[2];
 
     if (buffer_size <= 0) {
-    running->syscall_retvalue = DSOS_EERROR;
+    running->syscall_retvalue = DSOS_EBUFFER;
     return;
     }
 
@@ -27,7 +27,7 @@ void internal_mq_receive() {
     // if queue is empty, block the current process
     while (!mq->messages.first) {
         if (mq->status != MQ_OPEN) {
-            running->syscall_retvalue = DSOS_EERROR;
+            running->syscall_retvalue = DSOS_EMQNOTOPEN;
             return;
     }
 
@@ -42,8 +42,7 @@ void internal_mq_receive() {
 
     if (buffer_size < msg->size) {
     Message_free(msg);
-    running->syscall_retvalue = DSOS_EERROR;  //TODO: can specify the error type
-    return;
+    running->syscall_retvalue = DSOS_EBUFFER; 
   }
 
   memcpy(user_buffer, msg->data, msg->size);

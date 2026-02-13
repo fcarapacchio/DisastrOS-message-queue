@@ -12,7 +12,7 @@ void internal_mq_send() {
     int size = running->syscall_args[2];
 
     if (size <= 0) {
-    running->syscall_retvalue = DSOS_EERROR;
+    running->syscall_retvalue = DSOS_EBUFFER;
     return;
   }
 
@@ -28,7 +28,7 @@ void internal_mq_send() {
     // if queue is full, block the process
     while(mq->current_messages >= mq->max_messages) {
         if (mq->status != MQ_OPEN) {
-            running->syscall_retvalue = DSOS_EERROR;
+            running->syscall_retvalue = DSOS_EMQNOTOPEN;
             return;
     }
         running->status = Waiting;
@@ -38,7 +38,7 @@ void internal_mq_send() {
 
     Message* msg = Message_alloc(size);
     if(!msg){
-        running->syscall_retvalue = DSOS_EERROR;
+        running->syscall_retvalue = DSOS_EBUFFER;
         return;
     }
 

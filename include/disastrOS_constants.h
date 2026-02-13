@@ -9,13 +9,13 @@
 #define MESSAGE_QUEUE_SIZE sizeof(MessageQueue)
 #define MAX_MESSAGE_QUEUES        32    // max number of message queue
 #define MAX_MESSAGES_PER_QUEUE   16     // max number of message for message queue
-#define MESSAGE_QUEUE_BUFFER_SIZE (MAX_MESSAGE_QUEUES * MESSAGE_QUEUE_SIZE)
+#define MESSAGE_QUEUE_BUFFER_SIZE (MAX_MESSAGE_QUEUES * (MESSAGE_QUEUE_SIZE + sizeof(int)))
 #define DSOS_MQ_BLOCKING    0x1
 #define DSOS_MQ_NONBLOCKING 0x2
 
 // message
 #define MESSAGE_SIZE sizeof(Message)
-#define MESSAGE_BUFFER_SIZE (MAX_MESSAGES_PER_QUEUE * MAX_MESSAGE_QUEUES * MESSAGE_SIZE)
+#define MESSAGE_BUFFER_SIZE (MAX_MESSAGES_PER_QUEUE * MAX_MESSAGE_QUEUES * ((MESSAGE_SIZE + MESSAGE_MAX_SIZE) + sizeof(int)))
 #define MESSAGE_MAX_SIZE         256  // max payload
 
 #define STACK_SIZE        16384
@@ -50,6 +50,8 @@
 #define DSOS_EMQCREATE -20 // error in queue creation
 #define DSOS_EMQEXISTS -21 // message queue already exists
 #define DSOS_EMQCLOSED -22 // message queue is closed
+#define DSOS_EMQNOTOPEN -23 // message queue status is not open
+#define DSOS_EBUFFER -24 // buffer size error 
 
 // syscall numbers
 #define DSOS_MAX_SYSCALLS 32
