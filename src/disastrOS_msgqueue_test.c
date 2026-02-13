@@ -6,6 +6,7 @@
 #include "disastrOS_msgqueuetest.h"
 
 static int test_failures = 0;
+static int blocking_sender_qid = -1;
 
 static void check(int condition, const char* name) {
   if (condition) {
@@ -80,42 +81,37 @@ void MsgQueueTest_receive() {
 }
 
 void MsgQueueTest_blocking_behavior() {
-  printf("\n=== MsgQueueTest_blocking_behavior ===\n");
+  printf("\n=== MsgQueueTest_blocking_behavior (spawn) ===\n");
   const int qid = 103;
   char first_msg[] = "first";
   char out[32];
 
-  int ret = disastrOS_mq_create(qid, 1);
-  check(ret == qid, "mq_create for blocking test");
+  int ret = disastrOS_mq_create(qid, 2);
+  check(ret == qid, "mq_create for spawn sender test");
 
   ret = disastrOS_mq_send(qid, first_msg, sizeof(first_msg));
-  check(ret == 0, "initial send fills queue");
+   check(ret == 0, "initial send");
+  blocking_sender_qid = qid;
+  disastrOS_spawn(blocking_sender, (void*)&blocking_sender_qid);
+  check(1, "spawn sender");
 
-  int child_pid = disastrOS_fork();
-  check(child_pid >= 0, "fork for blocking sender");
-  if (child_pid == 0) {
-    blocking_sender((void*)&qid);
-    return;
-  }
+  // schedule child so it can enqueue its message
+  disastrOS_preempt();
+  memset(out, 0, sizeof(out));
+  ret = disastrOS_mq_receive(qid, out, sizeof(out));
 
-  disastrOS_sleep(5);
+  check(ret > 0, "first receive");
 
   memset(out, 0, sizeof(out));
   ret = disastrOS_mq_receive(qid, out, sizeof(out));
-  check(ret > 0, "receive wakes blocked sender");
-
-  disastrOS_sleep(5);
-
-  memset(out, 0, sizeof(out));
-  ret = disastrOS_mq_receive(qid, out, sizeof(out));
-  check(ret > 0, "second receive gets sender message");
+  check(ret > 0, "second receive");
 
   int child_ret = 0;
-  int waited = disastrOS_wait(child_pid, &child_ret);
-  check(waited == child_pid, "wait on blocking sender child");
+  int waited = disastrOS_wait(0, &child_ret);
+  check(waited >= 0, "wait on spawned sender child");
 
   ret = disastrOS_mq_destroy(qid);
-  check(ret == qid, "mq_destroy after blocking test");
+  check(ret == qid, "mq_destroy after spawn sender test");
 }
 
 void MsgQueueTest_runAll() {

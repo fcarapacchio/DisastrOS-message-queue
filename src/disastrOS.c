@@ -12,6 +12,12 @@
 #include "disastrOS_timer.h"
 #include "disastrOS_resource.h"
 #include "disastrOS_descriptor.h"
+#include "disastrOS_message.h"
+#include "disastrOS_message_queue.h"
+
+#ifndef DSOS_PRINT_TICKS
+#define DSOS_PRINT_TICKS 0
+#endif
 
 FILE* log_file=NULL;
 PCB* init_pcb;
@@ -48,7 +54,9 @@ void timerInterrupt(){
   if (log_file)
     fprintf(log_file, "TIME: %d\tPID: %d\tACTION: %s\n", disastrOS_time, running->pid, "TIMER_OUT");
   ++disastrOS_time;
+  #if DSOS_PRINT_TICKS
   printf("time: %d\n", disastrOS_time);
+  #endif
   internal_schedule();
   if (log_file)
     fprintf(log_file, "TIME: %d\tPID: %d\tACTION: %s\n", disastrOS_time, running->pid, "TIMER_IN");
@@ -142,6 +150,8 @@ void disastrOS_start(void (*f)(void*), void* f_args, char* logfile){
   Timer_init();
   Resource_init();
   Descriptor_init();
+  Message_init();
+  MessageQueue_init();
   init_pcb=0;
 
   // populate the vector of syscalls and number of arguments for each syscall

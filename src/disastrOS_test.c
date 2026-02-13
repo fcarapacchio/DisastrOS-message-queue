@@ -43,8 +43,6 @@ void initFunction(void* args) {
   if (run_mq_test) {
     MsgQueueTest_runAll();
   } else {
-  // disabled by default: on non-interactive stdin, sleeper loops on EOF and floods output
-  // disastrOS_spawn(sleeperFunction, 0);
 
   printf("I feel like to spawn 10 nice threads\n");
   int alive_children=0;
