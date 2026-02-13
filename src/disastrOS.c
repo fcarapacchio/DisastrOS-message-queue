@@ -288,7 +288,7 @@ int disastrOS_getpid(){
   return running->pid;
 }
 
-int disastrOS_openResource(int resource_id, int type, int mode) {
+int disastrOS_openResource(int resource_id, ResourceType type, int mode) {
   return disastrOS_syscall(DSOS_CALL_OPEN_RESOURCE, resource_id, type, mode);
 }
 

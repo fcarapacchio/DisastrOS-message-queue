@@ -11,7 +11,7 @@ void internal_openResource(){
 
   // get from the PCB the resource id of the resource to open
   int id=running->syscall_args[0];
-  int type=running->syscall_args[1];
+  ResourceType type=(ResourceType) running->syscall_args[1];
   int open_mode=running->syscall_args[2];
 
   Resource* res=ResourceList_byId(&resources_list, id);

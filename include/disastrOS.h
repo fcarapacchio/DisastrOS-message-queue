@@ -1,5 +1,6 @@
 #pragma once
 #include "disastrOS_pcb.h"
+#include "disastrOS_resource.h"
 #include "linked_list.h"
 
 #ifdef _DISASTROS_DEBUG_
@@ -32,7 +33,7 @@ void disastrOS_shutdown();
 void disastrOS_sleep(int);
 
 // resources (files)
-int disastrOS_openResource(int resource_id, int type, int mode);
+int disastrOS_openResource(int resource_id, ResourceType type, int mode);
 int disastrOS_closeResource(int fd) ;
 int disastrOS_destroyResource(int resource_id);
 

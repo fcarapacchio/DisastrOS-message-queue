@@ -1,13 +1,11 @@
 #include "disastrOS_message_queue.h"
 #include "disastrOS.h"
 #include "disastrOS_syscalls.h"
-
+#include <stdio.h>
 #include "linked_list.h"
 #include "disastrOS_message.h"
 #include "pool_allocator.h"
 
-#define MESSAGE_QUEUE_SIZE sizeof(MessageQueue)
-#define MESSAGE_QUEUE_BUFFER_SIZE MESSAGE_QUEUE_SIZE*MAX_MESSAGE_QUEUES
 static char _message_queue_buffer[MESSAGE_QUEUE_BUFFER_SIZE];
 /*
  * message queue pool allocator
