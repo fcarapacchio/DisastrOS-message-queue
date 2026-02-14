@@ -43,6 +43,7 @@ void internal_mq_receive() {
     if (buffer_size < msg->size) {
     Message_free(msg);
     running->syscall_retvalue = DSOS_EBUFFER; 
+    return; 
   }
 
   memcpy(user_buffer, msg->data, msg->size);

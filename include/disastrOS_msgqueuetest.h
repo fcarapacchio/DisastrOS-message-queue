@@ -15,5 +15,8 @@ void MsgQueueTest_receive();
 // Test blocking behavior when queue is full/empty
 void MsgQueueTest_blocking_behavior();
 
+// Test error and edge cases
+void MsgQueueTest_error_cases();
+
 // Debug function to run all MQ tests
 void MsgQueueTest_runAll();

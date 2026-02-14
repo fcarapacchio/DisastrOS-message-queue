@@ -28,7 +28,7 @@ void internal_mq_destroy() {
     while (mq->waiting_receivers.first) {
         PCB* pcb = (PCB*) List_detach(&mq->waiting_receivers, mq->waiting_receivers.first);
         pcb->status = Ready;
-        pcb->syscall_retvalue = DSOS_EERROR;
+        pcb->syscall_retvalue = DSOS_EMQNOTOPEN;
         List_insert(&ready_list, ready_list.last, (ListItem*)pcb);
     }
 
@@ -36,7 +36,7 @@ void internal_mq_destroy() {
     while (mq->waiting_senders.first) {
         PCB* pcb = (PCB*) List_detach(&mq->waiting_senders, mq->waiting_senders.first);
         pcb->status = Ready;
-        pcb->syscall_retvalue = DSOS_EERROR;
+        pcb->syscall_retvalue = DSOS_EMQNOTOPEN;
         List_insert(&ready_list, ready_list.last, (ListItem*)pcb);
     }
 

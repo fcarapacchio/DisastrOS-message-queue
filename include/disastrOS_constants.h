@@ -10,8 +10,6 @@
 #define MAX_MESSAGE_QUEUES        32    // max number of message queue
 #define MAX_MESSAGES_PER_QUEUE   16     // max number of message for message queue
 #define MESSAGE_QUEUE_BUFFER_SIZE (MAX_MESSAGE_QUEUES * (MESSAGE_QUEUE_SIZE + sizeof(int)))
-#define DSOS_MQ_BLOCKING    0x1
-#define DSOS_MQ_NONBLOCKING 0x2
 
 // message
 #define MESSAGE_SIZE sizeof(Message)
