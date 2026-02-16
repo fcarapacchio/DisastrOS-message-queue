@@ -29,8 +29,8 @@ void internal_mq_receive() {
         if (mq->status != MQ_OPEN) {
             running->syscall_retvalue = DSOS_EMQNOTOPEN;
             return;
-    }
-
+        }
+        
     running->status = Waiting;
     List_insert(&mq->waiting_receivers, mq->waiting_receivers.last, (ListItem*) running);
     internal_schedule();

@@ -94,58 +94,77 @@ void MessageQueue_printAll() {
   printf("======================\n");
 }
 
-void MessageQueue_print_messages(MessageQueue* mq) {
-  if (!mq) {
+void MessageQueue_print_messages(int queue_id) {
+  if (!queue_id) {
     printf("MessageQueue_print_messages: NULL queue\n");
     return;
   }
 
-  printf("Queue %d messages (%d/%d):\n", mq->queue_id, mq->current_messages, mq->max_messages);
-
-  if (!mq->messages.first) {
-    printf("  [empty]\n");
-    return;
-  }
-
-  ListItem* item = mq->messages.first;
-  int index = 0;
-
+  ListItem* item = resources_list.first;
   while (item) {
-    Message* msg = (Message*) item;
+    Resource* r = (Resource*) item;
 
-    printf("  [%d] sender=%d size=%d\n", index, msg->sender->pid, msg->size);
+    if (r->type == RESOURCE_MESSAGE_QUEUE && r->id == queue_id) {
+      MessageQueue* mq = (MessageQueue*) r;
+      printf("Queue %d messages (%d/%d):\n", mq->queue_id, mq->current_messages, mq->max_messages);
 
-    item = item->next;
-    index++;
+      if (!mq->messages.first) {
+         printf("  [empty]\n");
+         return;
+      }
+
+     ListItem* it = mq->messages.first;
+     int index = 0;
+
+     while (it) {
+      Message* msg = (Message*) it;
+      printf("  [%d] sender=%d size=%d\n", index, msg->sender->pid, msg->size);
+      it = it->next;
+      index++;
+    }
   }
+  item = item->next;
 }
 
-void MessageQueue_print_status(MessageQueue* mq){
-  printf("MQ id=%d, max=%d, current=%d, status=%d\n", mq->queue_id, mq->max_messages, mq->current_messages, mq->status);
-    
-    printf("Messages:\n");
-    ListItem* it = mq->messages.first;
-    while(it) {
+}
+
+void MessageQueue_print_status(int queue_id){
+
+  ListItem* item = resources_list.first;
+
+  while (item) {
+    Resource* r = (Resource*) item;
+
+    if (r->type == RESOURCE_MESSAGE_QUEUE && r->id == queue_id) {
+      MessageQueue* mq = (MessageQueue*) r;
+      printf("MQ id=%d, max=%d, current=%d, status=%d\n", mq->queue_id, mq->max_messages, mq->current_messages, mq->status);
+      printf("Messages:\n");
+      ListItem* it = mq->messages.first;
+      while(it) {
         Message* msg = (Message*)it;
         printf("  size=%d, data[0]=%c\n", msg->size, msg->data[0]);
         it = it->next;
-    }
+      }
 
-    printf("Waiting receivers:\n");
-    it = mq->waiting_receivers.first;
-    while(it) {
+      printf("Waiting receivers:\n");
+      it = mq->waiting_receivers.first;
+      while(it) {
         PCB* pcb = (PCB*)it;
         printf("  PID=%d\n", pcb->pid);
         it = it->next;
-    }
+      }
 
-    printf("Waiting senders:\n");
-    it = mq->waiting_senders.first;
-    while(it) {
+      printf("Waiting senders:\n");
+      it = mq->waiting_senders.first;
+      while(it) {
         PCB* pcb = (PCB*)it;
         printf("  PID=%d\n", pcb->pid);
         it = it->next;
+      }
     }
+    item = item->next;
+  }
+
 }
 
 

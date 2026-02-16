@@ -47,5 +47,5 @@ void MessageQueue_free(MessageQueue* mq);
 
 // debug
 void MessageQueue_printAll();
-void MessageQueue_print_messages(MessageQueue* mq);
-void MessageQueue_print_status(MessageQueue* mq);
+void MessageQueue_print_messages(int queue_id);
+void MessageQueue_print_status(int queue_id);

@@ -1,10 +1,29 @@
 #include <stdio.h>
-#include <string.h>
 #include <unistd.h>
+#include <string.h>
 #include <poll.h>
 
 #include "disastrOS.h"
 #include "disastrOS_msgqueuetest.h"
+#include "disastrOS_message_queue.h"
+
+#define TEST_QUEUE_ID 200
+#define NUM_CHILDREN 10
+
+typedef struct {
+  int queue_id;
+  int producer_index;
+} ProducerArgs;
+
+// dedicated producer used to send real messages in the runtime queue
+void mqProducerFunction(void* args){
+  ProducerArgs* producer_args=(ProducerArgs*) args;
+  char msg[64];
+  snprintf(msg, sizeof(msg), "producer[%d] pid=%d", producer_args->producer_index, disastrOS_getpid());
+  int send_ret=disastrOS_mq_send(producer_args->queue_id, msg, (int) strlen(msg)+1);
+  printf("producer pid=%d, mq_send ret=%d, msg='%s'\n", disastrOS_getpid(), send_ret, msg);
+  disastrOS_exit(send_ret);
+}
 
 // we need this to handle the sleep state
 void sleeperFunction(void* args){
@@ -16,6 +35,7 @@ void sleeperFunction(void* args){
 }
 
 void childFunction(void* args){
+  (void) args;
   printf("Hello, I am the child function %d\n",disastrOS_getpid());
   printf("I will iterate a bit, before terminating\n");
   int type=0;
@@ -31,8 +51,18 @@ void childFunction(void* args){
   disastrOS_exit(disastrOS_getpid()+1);
 }
 
+void mq_test_process(void* args) { 
+  (void) args;
+  MsgQueueTest_runAll(); 
+  disastrOS_exit(0);
+  int mq_retval = 0;
+  int waited_pid = disastrOS_wait(0, &mq_retval);
+  if (waited_pid < 0)
+    printf("failed to wait MQ test process\n");
+  else
+    printf("MQ test process pid=%d finished with retval=%d\n", waited_pid, mq_retval);
+}
 
-static int run_mq_test = 1;
 
 void initFunction(void* args) {
   (void) args;
@@ -40,13 +70,48 @@ void initFunction(void* args) {
   printf("hello, I am init and I just started\n");
   
 
-  if (run_mq_test) {
-    MsgQueueTest_runAll();
-  } else {
+  int qid=disastrOS_mq_create(TEST_QUEUE_ID, NUM_CHILDREN);
+  printf("create runtime queue id=%d\n", qid);
+  if (qid<0) {
+    printf("cannot create runtime queue, aborting integration part\n");
+    printf("shutdown!");
+    disastrOS_shutdown();
+    return;
+  }
+
+  // explicit send phase: producers send all messages first
+  ProducerArgs producer_args[NUM_CHILDREN];
+  int alive_producers=0;
+  for (int i=0; i<NUM_CHILDREN; ++i) {
+    producer_args[i].queue_id=TEST_QUEUE_ID;
+    producer_args[i].producer_index=i;
+    disastrOS_spawn(mqProducerFunction, &producer_args[i]);
+    alive_producers++;
+  }
+
+  int successful_messages=0;
+  int retval;
+  int pid;
+  while (alive_producers>0 && (pid=disastrOS_wait(0, &retval))>=0){
+    if (retval==0)
+      successful_messages++;
+    printf("producer pid=%d terminated, retval=%d, remaining=%d\n", pid, retval, alive_producers-1);
+    --alive_producers;
+  }
+
+  printf("receiving %d messages from producers\n", successful_messages);
+  for (int i=0; i<successful_messages; ++i) {
+    char msg[64];
+    memset(msg, 0, sizeof(msg));
+    int recv_ret=disastrOS_mq_receive(TEST_QUEUE_ID, msg, sizeof(msg));
+    printf("init mq_receive[%d] ret=%d msg='%s'\n", i, recv_ret, msg);
+  }
+
+  disastrOS_spawn(sleeperFunction, 0);
 
   printf("I feel like to spawn 10 nice threads\n");
   int alive_children=0;
-  for (int i=0; i<10; ++i) {
+  for (int i=0; i<NUM_CHILDREN; ++i) {
     int type=0;
     int mode=DSOS_CREATE;
     printf("mode: %d\n", mode);
@@ -57,31 +122,36 @@ void initFunction(void* args) {
     alive_children++;
   }
 
+  printf("receiving %d messages from children\n", NUM_CHILDREN);
+  for (int i=0; i<NUM_CHILDREN; ++i) {
+    char msg[64];
+    memset(msg, 0, sizeof(msg));
+    MessageQueue_print_status(qid);
+    MessageQueue_print_messages(qid);
+    int recv_ret=disastrOS_mq_receive(TEST_QUEUE_ID, msg, sizeof(msg));
+    printf("init mq_receive[%d] ret=%d msg='%s'\n", i, recv_ret, msg);
+  }
+
   disastrOS_printStatus();
-  int retval;
-  int pid;
   while(alive_children>0 && (pid=disastrOS_wait(0, &retval))>=0){
     disastrOS_printStatus();
     printf("initFunction, child: %d terminated, retval:%d, alive: %d \n",
            pid, retval, alive_children);
     --alive_children;
   }
-  }
+  int destroy_ret=disastrOS_mq_destroy(TEST_QUEUE_ID);
+  printf("destroy runtime queue ret=%d\n", destroy_ret);
+  
 
   printf("shutdown!");
   disastrOS_shutdown();
 }
 
+
 int main(int argc, char** argv){
   char* logfilename=0;
-  for (int i=1; i<argc; ++i) {
-    if (!strcmp(argv[i], "--mq-test")) {
-      run_mq_test = 1;
-    } else if (!strcmp(argv[i], "--legacy-test")) {
-      run_mq_test = 0;
-    } else {
-      logfilename=argv[i];
-    }
+  if (argc>1) {
+    logfilename=argv[1];
   }
   // we create the init process processes
   // the first is in the running variable

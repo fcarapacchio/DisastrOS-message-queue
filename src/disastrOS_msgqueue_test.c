@@ -285,9 +285,10 @@ void MsgQueueTest_error_cases() {
     test_failures++;
     mq_test_pace();
     return;
+  }
 
-    printf("Destroying queue %d\n", qid);
-    mq_test_pace();
+  printf("Destroying queue %d\n", qid);
+  mq_test_pace();
   if (disastrOS_mq_destroy(qid) != qid) {
     printf("Failed destroying queue %d after error checks\n", qid);
     test_failures++;
@@ -297,7 +298,7 @@ void MsgQueueTest_error_cases() {
 
   printf("[MQ-TEST] error cases passed\n");
 }
- }
+
 
 void MsgQueueTest_runAll() {
   MsgQueueTest_init();
@@ -321,4 +322,5 @@ void MsgQueueTest_runAll() {
     printf("\n[MQ-TEST] ALL TESTS PASSED\n");
   else
     printf("\n[MQ-TEST] FAILURES=%d\n", test_failures);
-}
+
+ }
