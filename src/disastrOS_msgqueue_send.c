@@ -38,6 +38,7 @@ void internal_mq_send() {
     }
         running->status = Waiting;
         List_insert(&mq->waiting_senders,mq->waiting_senders.last, (ListItem*) running);
+        printf("[mq_send] pid=%d inserted into waiting_senders on queue %d\n", running->pid, mq->queue_id);
         MessageQueue_print_status(mq->queue_id);
         internal_schedule();
     }

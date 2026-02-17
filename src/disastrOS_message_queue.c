@@ -148,20 +148,30 @@ void MessageQueue_print_status(int queue_id){
       }
 
       printf("Waiting receivers:\n");
+      int wr_count=0;
       it = mq->waiting_receivers.first;
       while(it) {
         PCB* pcb = (PCB*)it;
         printf("  PID=%d\n", pcb->pid);
         it = it->next;
+        wr_count++;
       }
+      if (!wr_count)
+        printf("  [none]\n");
+      printf("  total_waiting_receivers=%d\n", wr_count);
 
       printf("Waiting senders:\n");
+      int ws_count=0;
       it = mq->waiting_senders.first;
       while(it) {
         PCB* pcb = (PCB*)it;
         printf("  PID=%d\n", pcb->pid);
         it = it->next;
+        ws_count++;
       }
+      if (!ws_count)
+        printf("  [none]\n");
+      printf("  total_waiting_senders=%d\n", ws_count);
     }
     item = item->next;
   }
