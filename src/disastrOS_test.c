@@ -38,15 +38,18 @@ void childFunction(void* args){
   (void) args;
   printf("Hello, I am the child function %d\n",disastrOS_getpid());
   printf("I will iterate a bit, before terminating\n");
+  char msg[64];
+  snprintf(msg, sizeof(msg), "child pid=%d started", disastrOS_getpid());
+  int send_ret=disastrOS_mq_send(TEST_QUEUE_ID, msg, (int) strlen(msg)+1);
+  printf("child pid=%d, mq_send ret=%d, msg='%s'\n", disastrOS_getpid(), send_ret, msg);
   int type=0;
   int mode=0;
   int fd=disastrOS_openResource(disastrOS_getpid(),type,mode);
   printf("fd=%d\n", fd);
   printf("PID: %d, terminating\n", disastrOS_getpid());
 
-  for (int i=0; i<(disastrOS_getpid()+1); ++i){
+  for (int i=0; i<3; ++i){
     printf("PID: %d, iterate %d\n", disastrOS_getpid(), i);
-    disastrOS_sleep((20-disastrOS_getpid())*5);
   }
   disastrOS_exit(disastrOS_getpid()+1);
 }
@@ -107,7 +110,6 @@ void initFunction(void* args) {
     printf("init mq_receive[%d] ret=%d msg='%s'\n", i, recv_ret, msg);
   }
 
-  disastrOS_spawn(sleeperFunction, 0);
 
   printf("I feel like to spawn 10 nice threads\n");
   int alive_children=0;
@@ -121,6 +123,12 @@ void initFunction(void* args) {
     disastrOS_spawn(childFunction, 0);
     alive_children++;
   }
+
+  // Let every child run at least once so queue gets populated before receives.
+  for (int i=0; i<NUM_CHILDREN; ++i) {
+    disastrOS_preempt();
+  }
+
 
   printf("receiving %d messages from children\n", NUM_CHILDREN);
   for (int i=0; i<NUM_CHILDREN; ++i) {
