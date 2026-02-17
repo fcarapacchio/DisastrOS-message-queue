@@ -33,6 +33,7 @@ void internal_mq_receive() {
         
     running->status = Waiting;
     List_insert(&mq->waiting_receivers, mq->waiting_receivers.last, (ListItem*) running);
+    MessageQueue_print_status(mq->queue_id);
     internal_schedule();
 }
 

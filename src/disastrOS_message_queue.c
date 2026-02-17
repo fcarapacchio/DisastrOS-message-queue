@@ -32,6 +32,7 @@ MessageQueue* MessageQueue_alloc(int queue_id, int size) {
     return 0;
 
   // Resource part
+  mq->resource.list.prev = mq->resource.list.next = 0;
   mq->resource.id = queue_id;
   mq->resource.type = RESOURCE_MESSAGE_QUEUE;
   mq->resource.ref_count = 0;

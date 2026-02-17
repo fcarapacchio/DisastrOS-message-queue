@@ -27,12 +27,18 @@ void internal_mq_send() {
 
     // if queue is full, block the process
     while(mq->current_messages >= mq->max_messages) {
+        printf("[mq_send] queue %d FULL (%d/%d), pid=%d enters waiting_senders\n",
+               mq->queue_id,
+               mq->current_messages,
+               mq->max_messages,
+               running->pid);
         if (mq->status != MQ_OPEN) {
             running->syscall_retvalue = DSOS_EMQNOTOPEN;
             return;
     }
         running->status = Waiting;
         List_insert(&mq->waiting_senders,mq->waiting_senders.last, (ListItem*) running);
+        MessageQueue_print_status(mq->queue_id);
         internal_schedule();
     }
 
@@ -47,6 +53,13 @@ void internal_mq_send() {
     // insert the message
     List_insert(&mq->messages, mq->messages.last, (ListItem*)msg);
     mq->current_messages++;
+    if (mq->current_messages == mq->max_messages) {
+        printf("[mq_send] queue %d reached FULL state (%d/%d) after pid=%d send\n",
+               mq->queue_id,
+               mq->current_messages,
+               mq->max_messages,
+               running->pid);
+    }
 
     // wake up a blocked receiver
     if (mq->waiting_receivers.first) {
