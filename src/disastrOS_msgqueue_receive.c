@@ -36,6 +36,14 @@ void internal_mq_receive() {
     printf("[mq_receive] pid=%d inserted into waiting_receivers on queue %d\n", running->pid, mq->queue_id);
     MessageQueue_print_status(mq->queue_id);
     internal_schedule();
+
+    // no process was schedulable: avoid spinning forever in this syscall
+    if (running->status == Waiting) {
+      List_detach(&mq->waiting_receivers, (ListItem*) running);
+      running->status = Running;
+      running->syscall_retvalue = DSOS_EMQEMPTY;
+      return;
+    }
 }
 
     // take the first message

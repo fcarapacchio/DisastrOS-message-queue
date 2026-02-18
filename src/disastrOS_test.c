@@ -3,26 +3,16 @@
  
 #include "disastrOS.h"
 #include "disastrOS_message_queue.h"
+#include "disastrOS_msgqueuetest.h"
  
 #define TEST_QUEUE_ID 200
-#define PRODUCERS 3
-#define CONSUMERS 2
-#define MSGS_PER_PRODUCER 3
-#define TOTAL_MESSAGES (PRODUCERS * MSGS_PER_PRODUCER)
-#define QUEUE_CAPACITY TOTAL_MESSAGES
+#define QUEUE_CAPACITY 2
 #define MAX_MSG_SIZE 64
 
- typedef struct {
-   int queue_id;
-   int producer_id;
-   int messages_to_send;
- } ProducerArgs;
- 
- typedef struct {
-   int queue_id;
-   int consumer_id;
-   int messages_to_receive;
- } ConsumerArgs;
+typedef struct {
+  int queue_id;
+  int sender_id;
+} SenderArgs;
 
  static void dump_queue_state(const char* phase, int queue_id) {
   printf("\n===== %s =====\n", phase);
@@ -34,74 +24,42 @@
  
 
 
-static void producerProcess(void* args) {
-  ProducerArgs* p_args = (ProducerArgs*) args;
-  for (int i = 0; i < p_args->messages_to_send; ++i) {
-    char payload[MAX_MSG_SIZE];
-    snprintf(payload,
-             sizeof(payload),
-             "msg[p%d-%d] from pid=%d",
-            p_args->producer_id,
-             i,
-             disastrOS_getpid());
+static void oneShotSender(void* args) {
+  SenderArgs* s_args = (SenderArgs*) args;
+  char payload[MAX_MSG_SIZE];
+  snprintf(payload,
+           sizeof(payload),
+           "msg[s%d] from pid=%d",
+           s_args->sender_id,
+           disastrOS_getpid());
 
-    int ret = disastrOS_mq_send(p_args->queue_id, payload, (int) strlen(payload) + 1);
-    printf("[PRODUCER %d | pid=%d] send #%d -> ret=%d, payload='%s'\n",
-           p_args->producer_id,
-           disastrOS_getpid(),
-           i,
-           ret,
-           payload);
+  int ret = disastrOS_mq_send(s_args->queue_id, payload, (int) strlen(payload) + 1);
+  printf("[SENDER %d | pid=%d] send ret=%d payload='%s'\n",
+         s_args->sender_id,
+         disastrOS_getpid(),
+         ret,
+         payload);
+  MessageQueue_print_status(s_args->queue_id);
 
-    MessageQueue_print_status(p_args->queue_id);
-    disastrOS_preempt();
-   }
- }
- 
-static void consumerProcess(void* args) {
-  ConsumerArgs* c_args = (ConsumerArgs*) args;
-  for (int i = 0; i < c_args->messages_to_receive; ++i) {
-    char buffer[MAX_MSG_SIZE];
-    memset(buffer, 0, sizeof(buffer));
- 
-    int ret = disastrOS_mq_receive(c_args->queue_id, buffer, sizeof(buffer));
-    printf("[CONSUMER %d | pid=%d] recv #%d -> ret=%d, payload='%s'\n",
-           c_args->consumer_id,
-           disastrOS_getpid(),
-           i,
-           ret,
-           ret >= 0 ? buffer : "");
-    MessageQueue_print_status(c_args->queue_id);
-    disastrOS_preempt();
-   }
- 
-  disastrOS_exit(0);
+  disastrOS_exit(ret);
 }
-
-static void wait_children(const char* phase, int queue_id, int children) {
-  int left = children;
-  while (left > 0) {
-    int retval = 0;
-    int pid = disastrOS_wait(0, &retval);
-    if (pid < 0) {
-      printf("[INIT] wait failed in phase '%s', left=%d\n", phase, left);
-      return;
-    }
-
-    printf("[INIT][%s] child pid=%d terminated with retval=%d, left=%d\n",
-           phase,
-           pid,
-           retval,
-           left - 1);
-    dump_queue_state("STATO DOPO TERMINAZIONE FIGLIO", queue_id);
-    --left;
+static int wait_one_child(const char* phase, int queue_id) {
+  int retval = 0;
+  int pid = disastrOS_wait(0, &retval);
+  if (pid < 0) {
+    printf("[INIT] wait failed in phase '%s'\n", phase);
+    return -1;
   }
+  printf("[INIT][%s] child pid=%d terminated with retval=%d\n", phase, pid, retval);
+  dump_queue_state("STATO DOPO TERMINAZIONE FIGLIO", queue_id);
+  return pid;
 }
  
 static void initFunction(void* args) {
   (void) args;
+  MsgQueueTest_runAll();
  
-  printf("[INIT] pid=%d, avvio test completo message queue\n", disastrOS_getpid());
+  printf("[INIT] pid=%d, test blocking sender + unblocking via receive\n", disastrOS_getpid());
  
   int qid = disastrOS_mq_create(TEST_QUEUE_ID, QUEUE_CAPACITY);
   printf("[INIT] create queue id=%d (requested id=%d, capacity=%d)\n",
@@ -109,7 +67,7 @@ static void initFunction(void* args) {
          TEST_QUEUE_ID,
          QUEUE_CAPACITY);
 
-  if (qid < 0) {
+  if (qid < 0) {  
     printf("[INIT] errore creazione coda, shutdown\n");
     disastrOS_shutdown();
     return;
@@ -117,51 +75,59 @@ static void initFunction(void* args) {
  
   dump_queue_state("QUEUE CREATA", qid);
  
-  static ProducerArgs producer_args[PRODUCERS];
-for (int i = 0; i < PRODUCERS; ++i) {
-  producer_args[i].queue_id = qid;
-  producer_args[i].producer_id = i;
-  producer_args[i].messages_to_send = MSGS_PER_PRODUCER;
-  disastrOS_spawn(producerProcess, &producer_args[i]);
-  printf("[INIT] spawn producer[%d]\n", i);
-}
+   // 1) Saturiamo la coda con due sender (ognuno manda 1 messaggio)
+  static SenderArgs fill_args[QUEUE_CAPACITY];
+  for (int i = 0; i < QUEUE_CAPACITY; ++i) {
+    fill_args[i].queue_id = qid;
+    fill_args[i].sender_id = i;
+    disastrOS_spawn(oneShotSender, &fill_args[i]);
+    printf("[INIT] spawn filler sender[%d]\n", i);
+  }
 
-wait_children("PRODUCER", qid, PRODUCERS);
-dump_queue_state("QUEUE PIENA DI MESSAGGI PRODOTTI", qid);
-
-static ConsumerArgs consumer_args[CONSUMERS];
-int base = TOTAL_MESSAGES / CONSUMERS;
-int remainder = TOTAL_MESSAGES % CONSUMERS;
-
-for (int i = 0; i < CONSUMERS; ++i) {
-  consumer_args[i].queue_id = qid;
-  consumer_args[i].consumer_id = i;
-  consumer_args[i].messages_to_receive = base + (i < remainder ? 1 : 0);
-  disastrOS_spawn(consumerProcess, &consumer_args[i]);
-  printf("[INIT] spawn consumer[%d], target_msgs=%d\n", i, consumer_args[i].messages_to_receive);
-}
-
-wait_children("CONSUMER", qid, CONSUMERS);
-dump_queue_state("QUEUE DOPO CONSUMO", qid);
-
-  int children_left = PRODUCERS + CONSUMERS;
-  while (children_left > 0) {
-    int retval = 0;
-    int pid = disastrOS_wait(0, &retval);
-    if (pid < 0) {
-      printf("[INIT] wait failed while children_left=%d\n", children_left);
-      break;
+  for (int i = 0; i < QUEUE_CAPACITY; ++i) {
+    if (wait_one_child("FILL_QUEUE", qid) < 0) {
+      disastrOS_shutdown();
+      return;
     }
+  }
 
-    printf("[INIT] child pid=%d terminated with retval=%d, left=%d\n",
-           pid,
-           retval,
-           children_left - 1);
-    dump_queue_state("STATO DOPO TERMINAZIONE FIGLIO", qid);
-    --children_left;
-   }
- 
-  int destroy_ret = disastrOS_mq_destroy(qid);
+  dump_queue_state("CODA SATURA", qid);
+
+  // 2) Spawn di un sender aggiuntivo: deve bloccarsi in waiting_senders
+  static SenderArgs blocking_arg;
+  blocking_arg.queue_id = qid;
+  blocking_arg.sender_id = 99;
+  disastrOS_spawn(oneShotSender, &blocking_arg);
+  printf("[INIT] spawn blocking sender\n");
+
+  // Diamo CPU al sender così tenta send su coda piena e va in waiting_senders
+  disastrOS_preempt();
+  dump_queue_state("SENDER BLOCCATO IN WAITING_SENDERS", qid);
+
+  // 3) Il processo init riceve un messaggio: libera uno slot e risveglia il sender bloccato
+  char out[MAX_MSG_SIZE];
+  memset(out, 0, sizeof(out));
+  int recv_ret = disastrOS_mq_receive(qid, out, sizeof(out));
+  printf("[INIT] receive per sbloccare sender -> ret=%d payload='%s'\n", recv_ret, out);
+  dump_queue_state("DOPO RECEIVE (SLOT LIBERATO)", qid);
+
+  // Lasciamo eseguire il sender risvegliato, che completa la send e termina
+  disastrOS_preempt();
+  if (wait_one_child("WAIT_BLOCKING_SENDER", qid) < 0) {
+    disastrOS_shutdown();
+    return;
+  }
+
+  // 4) Svuotiamo la coda rimanente
+  for (int i = 0; i < QUEUE_CAPACITY; ++i) {
+    memset(out, 0, sizeof(out));
+    recv_ret = disastrOS_mq_receive(qid, out, sizeof(out));
+    printf("[INIT] drain receive #%d -> ret=%d payload='%s'\n", i, recv_ret, out);
+  }
+
+  dump_queue_state("CODA VUOTA", qid);
+
+int destroy_ret = disastrOS_mq_destroy(qid);
   printf("[INIT] destroy queue ret=%d\n", destroy_ret);
   disastrOS_printStatus();
   printf("[INIT] shutdown\n");

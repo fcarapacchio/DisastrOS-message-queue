@@ -35,12 +35,19 @@ void internal_mq_send() {
         if (mq->status != MQ_OPEN) {
             running->syscall_retvalue = DSOS_EMQNOTOPEN;
             return;
-    }
+        }
         running->status = Waiting;
         List_insert(&mq->waiting_senders,mq->waiting_senders.last, (ListItem*) running);
         printf("[mq_send] pid=%d inserted into waiting_senders on queue %d\n", running->pid, mq->queue_id);
         MessageQueue_print_status(mq->queue_id);
         internal_schedule();
+
+        if (running->status == Waiting) {
+            List_detach(&mq->waiting_senders, (ListItem*) running);
+            running->status = Running;
+            running->syscall_retvalue = DSOS_EMQFULL;
+            return;
+        }
     }
 
     Message* msg = Message_alloc(size);
