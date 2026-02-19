@@ -25,7 +25,7 @@ void internal_mq_receive() {
     MessageQueue* mq = (MessageQueue*) res;
 
     // if queue is empty, block the current process
-    while (!mq->messages.first) {
+    if (!mq->messages.first) {
         if (mq->status != MQ_OPEN) {
             running->syscall_retvalue = DSOS_EMQNOTOPEN;
             return;
@@ -34,7 +34,7 @@ void internal_mq_receive() {
     running->status = Waiting;
     List_insert(&mq->waiting_receivers, mq->waiting_receivers.last, (ListItem*) running);
     printf("[mq_receive] pid=%d inserted into waiting_receivers on queue %d\n", running->pid, mq->queue_id);
-    MessageQueue_print_status(mq->queue_id);
+    MessageQueue_print(mq->queue_id);
     internal_schedule();
 
     // no process was schedulable: avoid spinning forever in this syscall
@@ -44,6 +44,11 @@ void internal_mq_receive() {
       running->syscall_retvalue = DSOS_EMQEMPTY;
       return;
     }
+    
+    // if queue is still empty and the running process changed, we stop here to avoid another insert in waiting_receivers in the same kernel execution
+    if (!mq->messages.first) {
+          return;
+        }
 }
 
     // take the first message
@@ -62,9 +67,28 @@ void internal_mq_receive() {
 
   Message_free(msg);
 
+  MessageQueue_print(mq->queue_id);
+
     // if a sender is blocked, wake him up
     if (mq->waiting_senders.first) {
         PCB* sender = (PCB*) List_detach(&mq->waiting_senders, mq->waiting_senders.first);
+        int sender_size = sender->syscall_args[2];
+        void* sender_buffer = (void*) sender->syscall_args[1];
+
+        if (sender_size <= 0 || sender_size > MESSAGE_MAX_SIZE) {
+          sender->syscall_retvalue = DSOS_EBUFFER;
+        } else {
+          Message* sender_msg = Message_alloc(sender_size);
+          if (!sender_msg) {
+            sender->syscall_retvalue = DSOS_EBUFFER;
+          } else {
+            memcpy(sender_msg->data, sender_buffer, sender_size);
+            List_insert(&mq->messages, mq->messages.last, (ListItem*) sender_msg);
+            mq->current_messages++;
+            sender->syscall_retvalue = 0;
+          }
+        }
+
         sender->status = Ready;
         List_insert(&ready_list, ready_list.last, (ListItem*) sender);
     }

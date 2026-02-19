@@ -26,7 +26,7 @@ void internal_mq_send() {
     MessageQueue* mq = (MessageQueue*) res;
 
     // if queue is full, block the process
-    while(mq->current_messages >= mq->max_messages) {
+    if (mq->current_messages >= mq->max_messages) {
         printf("[mq_send] queue %d FULL (%d/%d), pid=%d enters waiting_senders\n",
                mq->queue_id,
                mq->current_messages,
@@ -39,7 +39,7 @@ void internal_mq_send() {
         running->status = Waiting;
         List_insert(&mq->waiting_senders,mq->waiting_senders.last, (ListItem*) running);
         printf("[mq_send] pid=%d inserted into waiting_senders on queue %d\n", running->pid, mq->queue_id);
-        MessageQueue_print_status(mq->queue_id);
+        MessageQueue_print(mq->queue_id);
         internal_schedule();
 
         if (running->status == Waiting) {
@@ -47,6 +47,11 @@ void internal_mq_send() {
             running->status = Running;
             running->syscall_retvalue = DSOS_EMQFULL;
             return;
+        }
+        
+        // if queue is till full and the running process changed, we stop here to avoid another insert in waiting_senders in the same kernel execution
+        if (mq->current_messages >= mq->max_messages) {
+          return;
         }
     }
 
@@ -69,11 +74,29 @@ void internal_mq_send() {
                running->pid);
     }
 
-    // wake up a blocked receiver
+    MessageQueue_print(mq->queue_id);
+
+    // checking waiting receivers list, in case it's not empty we wake up one process
     if (mq->waiting_receivers.first) {
-        PCB* pcb = (PCB*) List_detach(&mq->waiting_receivers, mq->waiting_receivers.first);
-        pcb->status = Ready;
-        List_insert(&ready_list, ready_list.last, (ListItem*) pcb);
+        PCB* receiver = (PCB*) List_detach(&mq->waiting_receivers, mq->waiting_receivers.first);
+        void* receiver_buffer = (void*) receiver->syscall_args[1];
+        int receiver_buffer_size = receiver->syscall_args[2];
+
+        msg = (Message*)List_detach(&mq->messages, mq->messages.first);
+        mq->current_messages--;
+
+        if (receiver_buffer_size < size) {
+            receiver->syscall_retvalue = DSOS_EBUFFER;
+        } else {
+            memcpy(receiver_buffer, msg->data, msg->size);
+            receiver->syscall_retvalue = size;
+        }
+
+        receiver->status = Ready;
+        List_insert(&ready_list, ready_list.last, (ListItem*) receiver);
+
+        running->syscall_retvalue = 0;
+        return;
     }
 
     running->syscall_retvalue = 0; // success

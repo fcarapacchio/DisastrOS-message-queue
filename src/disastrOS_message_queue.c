@@ -129,7 +129,7 @@ void MessageQueue_print_messages(int queue_id) {
 
 }
 
-void MessageQueue_print_status(int queue_id){
+void MessageQueue_print(int queue_id){
 
   ListItem* item = resources_list.first;
 
@@ -138,12 +138,12 @@ void MessageQueue_print_status(int queue_id){
 
     if (r->type == RESOURCE_MESSAGE_QUEUE && r->id == queue_id) {
       MessageQueue* mq = (MessageQueue*) r;
-      printf("MQ id=%d, max=%d, current=%d, status=%d\n", mq->queue_id, mq->max_messages, mq->current_messages, mq->status);
+      printf("Message Queue: id=%d, max=%d, current=%d, status=%d\n", mq->queue_id, mq->max_messages, mq->current_messages, mq->status);
       printf("Messages:\n");
       ListItem* it = mq->messages.first;
       while(it) {
         Message* msg = (Message*)it;
-        printf("  size=%d, data[0]=%c\n", msg->size, msg->data[0]);
+        printf("  size=%d, data=%s\n", msg->size, msg->data);
         it = it->next;
       }
 

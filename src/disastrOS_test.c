@@ -19,7 +19,7 @@ typedef struct {
 
  static void dump_queue_state(const char* phase, int queue_id) {
   printf("\n===== %s =====\n", phase);
-  MessageQueue_print_status(queue_id);
+  MessageQueue_print(queue_id);
   MessageQueue_print_messages(queue_id);
   disastrOS_printStatus();
   printf("========================\n\n");
@@ -41,7 +41,7 @@ static void oneShotSender(void* args) {
          disastrOS_getpid(),
          ret,
          payload);
-  MessageQueue_print_status(s_args->queue_id);
+  MessageQueue_print(s_args->queue_id);
 
   disastrOS_exit(ret);
 }

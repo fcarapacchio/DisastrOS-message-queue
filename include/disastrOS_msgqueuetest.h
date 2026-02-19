@@ -1,8 +1,5 @@
 #pragma once
 
-// Initializes the test suite for message queues
-void MsgQueueTest_init();
-
 // Test creating and destroying message queues
 void MsgQueueTest_create_destroy();
 
@@ -12,8 +9,11 @@ void MsgQueueTest_send();
 // Test receiving messages
 void MsgQueueTest_receive();
 
-// Test blocking behavior when queue is full/empty
-void MsgQueueTest_blocking_behavior();
+// Test blocking behavior when queue is full
+void MsgQueueTest_blocking_sender();
+
+// Test blocking behavior when queue is empty
+void MsgQueueTest_blocking_receiver();
 
 // Test error and edge cases
 void MsgQueueTest_error_cases();

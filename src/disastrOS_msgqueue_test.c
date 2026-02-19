@@ -4,6 +4,8 @@
 #include "disastrOS.h"
 #include "disastrOS_constants.h"
 #include "disastrOS_msgqueuetest.h"
+#include "disastrOS_message_queue.h"
+
 #define MQ_TEST_PACE_US 120000
 
 static void mq_test_pace() {
@@ -16,30 +18,41 @@ static int blocking_sender_qid = -1;
 
 static void blocking_sender(void* args) {
   int qid = *(int*)args;
-  char second_msg[] = "second";
-  int ret = disastrOS_mq_send(qid, second_msg, sizeof(second_msg));
+  char third_msg[] = "third";
+  int ret = disastrOS_mq_send(qid, third_msg, sizeof(third_msg));
+  printf("[MQ-TEST] Message Queue after blocking sender:\n");
+  MessageQueue_print(qid);
   printf("[MQ-TEST] blocking sender send ret=%d\n", ret);
   disastrOS_exit(ret);
 }
 
-void MsgQueueTest_init() {
-  test_failures = 0;
-  printf("\n=== MsgQueueTest_init ===\n");
-  mq_test_pace();
+static void blocking_receiver(void* args) {
+  int qid = *(int*) args;
+  char in[32];
+  memset(in, 0, sizeof(in));
+  int ret = disastrOS_mq_receive(qid, in, sizeof(in));
+  printf("[MQ-TEST] blocking receiver receive ret=%d payload='%s'\n", ret, in);
+  disastrOS_exit(ret);
 }
 
-void MsgQueueTest_create_destroy() {
-  printf("\n=== MsgQueueTest_create_destroy ===\n");
+void MsgQueueTest_function() {
+  printf("\n=== MsgQueueTest_function ===\n");
   const int qid = 100;
+  char payload[] = "hello-queue";
+  char buffer[64];
 
-  printf("Creating queue %d\n", qid);
+  printf("\nCreating queue %d\n", qid);
   mq_test_pace();
   if (disastrOS_mq_create(qid, 4) != qid) {
-    printf("Failed to create queue %d\n", qid);
+    printf("Failed to create queue %d for receive test\n", qid);
     test_failures++;
     mq_test_pace();
     return;
   }
+  printf("Queue %d created successfully!\n", qid);
+  mq_test_pace();
+  MessageQueue_print(qid);
+  mq_test_pace();
 
   printf("Creating queue %d again (must fail)\n", qid);
   if (disastrOS_mq_create(qid, 4) != DSOS_EMQEXISTS) {
@@ -48,77 +61,23 @@ void MsgQueueTest_create_destroy() {
     mq_test_pace();
     return;
   }
-
-  printf("Destroying queue %d\n", qid);
-  if (disastrOS_mq_destroy(qid) != qid) {
-    printf("Failed to destroy queue %d\n", qid);
-    test_failures++;
-    mq_test_pace();
-    return;
-  }
-
-  printf("[MQ-TEST] create/destroy passed\n");
+  printf("Queue %d already exists, can't create another with same queue id\n", qid);
   mq_test_pace();
-}
-
-void MsgQueueTest_send() {
-  printf("\n=== MsgQueueTest_send ===\n");
-  const int qid = 101;
-  char payload[] = "hello-queue";
-
-  printf("Creating queue %d\n", qid);
-  mq_test_pace();
-  if (disastrOS_mq_create(qid, 2) != qid) {
-    printf("Failed to create queue %d for send test\n", qid);
-    test_failures++;
-    mq_test_pace();
-    return;
-  }
 
   printf("Sending one message\n");
-  if (disastrOS_mq_send(qid, payload, sizeof(payload)) != 0) {
-    printf("Failed to send on queue %d\n", qid);
-    test_failures++;
-    mq_test_pace();
-    return;
-  }
-
-  printf("Destroying queue %d\n", qid);
-  if (disastrOS_mq_destroy(qid) != qid) {
-    printf("Failed to destroy queue %d after send test\n", qid);
-    test_failures++;
-    mq_test_pace();
-    return;
-  }
-
-  printf("[MQ-TEST] send passed\n");
-}
-
-void MsgQueueTest_receive() {
-  printf("\n=== MsgQueueTest_receive ===\n");
-  const int qid = 102;
-  char payload[] = "recv-ok";
-  char buffer[64];
-
-  printf("Creating queue %d\n", qid);
   mq_test_pace();
-  if (disastrOS_mq_create(qid, 4) != qid) {
-    printf("Failed to create queue %d for receive test\n", qid);
+  if (disastrOS_mq_send(qid, payload, sizeof(payload)) != 0) {
+    printf("Failed to send message on queue %d\n", qid);
     test_failures++;
     mq_test_pace();
     return;
   }
 
-  printf("Sending payload before receive\n");
-  if (disastrOS_mq_send(qid, payload, sizeof(payload)) != 0) {
-    printf("Failed to pre-send payload on queue %d\n", qid);
-    test_failures++;
-    mq_test_pace();
-    return;
-  }
+  printf("Message sent successfully!\n");
+  mq_test_pace();
 
   memset(buffer, 0, sizeof(buffer));
-  printf("Receiving payload\n");
+  printf("Receiving message\n");
   mq_test_pace();
   int received = disastrOS_mq_receive(qid, buffer, sizeof(buffer));
   if (received != (int) sizeof(payload)) {
@@ -127,6 +86,9 @@ void MsgQueueTest_receive() {
     mq_test_pace();
     return;
   }
+
+  printf("Message received successfully!\n");
+  mq_test_pace();
 
   if (strcmp(buffer, payload) != 0) {
     printf("Payload mismatch: got '%s' expected '%s'\n", buffer, payload);
@@ -144,16 +106,20 @@ void MsgQueueTest_receive() {
     return;
   }
 
-  printf("[MQ-TEST] receive passed\n");
+  printf("Queue %d destroyed successfully!\n", qid);
+  mq_test_pace();
+
+  printf("[MQ-TEST] message queue test passed\n");
 }
 
-void MsgQueueTest_blocking_behavior() {
-  printf("\n=== MsgQueueTest_blocking_behavior (spawn) ===\n");
-  const int qid = 103;
+void MsgQueueTest_blocking_sender() {
+  printf("\n=== MsgQueueTest_blocking_sender (spawn) ===\n");
+  const int qid = 101;
   char first_msg[] = "first";
+  char second_msg[] = "second";
   char out[32];
 
-  printf("Creating queue %d with capacity 2\n", qid);
+  printf("\nCreating queue %d with capacity 2\n", qid);
   mq_test_pace();
   if (disastrOS_mq_create(qid, 2) != qid) {
     printf("Failed to create queue %d for blocking test\n", qid);
@@ -169,6 +135,15 @@ void MsgQueueTest_blocking_behavior() {
     mq_test_pace();
     return;
   }
+  
+  printf("Sending second message (queue becomes full)\n");
+  if (disastrOS_mq_send(qid, second_msg, sizeof(second_msg)) != 0) {
+    printf("Failed to send second message\n");
+    test_failures++;
+    mq_test_pace();
+    return;
+  }
+
 
   printf("Spawning blocking sender\n");
   mq_test_pace();
@@ -178,16 +153,9 @@ void MsgQueueTest_blocking_behavior() {
   // schedule child so it can enqueue its message
   disastrOS_preempt();
   memset(out, 0, sizeof(out));
+  printf("Receiving a message to allow the sending of another message\n");
   if (disastrOS_mq_receive(qid, out, sizeof(out)) <= 0) {
     printf("Failed first receive\n");
-    test_failures++;
-    mq_test_pace();
-    return;
-  }
-
-  memset(out, 0, sizeof(out));
-  if (disastrOS_mq_receive(qid, out, sizeof(out)) <= 0) {
-    printf("Failed second receive\n");
     test_failures++;
     mq_test_pace();
     return;
@@ -204,13 +172,80 @@ void MsgQueueTest_blocking_behavior() {
   printf("Destroying queue %d\n", qid);
   mq_test_pace();
   if (disastrOS_mq_destroy(qid) != qid) {
-    printf("Failed to destroy queue %d after blocking test\n", qid);
+    printf("Failed to destroy queue %d after blocking sender test\n", qid);
     test_failures++;
     mq_test_pace();
     return;
   }
 
-  printf("[MQ-TEST] blocking behavior passed\n");
+  printf("[MQ-TEST] blocking sender passed\n");
+}
+
+void MsgQueueTest_blocking_receiver() {
+  printf("\n=== MsgQueueTest_blocking_receiver (spawn) ===\n");
+  const int qid = 102;
+  char wake_msg[] = "wake-receiver";
+
+  printf("\nCreating queue %d with capacity 2\n", qid);
+  mq_test_pace();  
+  if (disastrOS_mq_create(qid, 2) != qid) {
+    printf("Failed to create queue %d for blocking receiver test\n", qid);
+    test_failures++;
+    mq_test_pace();
+    return;
+  }
+
+  printf("Spawning receiver on empty queue\n");
+  mq_test_pace();
+  int receiver_qid = qid;
+  disastrOS_spawn(blocking_receiver, (void*) &receiver_qid);
+
+  // let child run: it should attempt receive and block on waiting_receivers
+  disastrOS_preempt();
+
+  printf("Sending one message to wake blocked receiver\n");
+  mq_test_pace();
+
+  if (disastrOS_mq_send(qid, wake_msg, sizeof(wake_msg)) != 0) {
+    printf("Failed to send wake message on queue %d\n", qid);
+    test_failures++;
+    mq_test_pace();
+    return;
+  }
+  
+  printf("[MQ-TEST] Message queue after blocking receiver\n");
+  MessageQueue_print(qid);
+  mq_test_pace();
+
+  // let receiver run and consume message
+  disastrOS_preempt();
+
+  int child_ret = 0;
+  if (disastrOS_wait(0, &child_ret) < 0) {
+    printf("Failed wait on blocking receiver child\n");
+    test_failures++;
+    mq_test_pace();
+    return;
+  }
+
+  if (child_ret < 0) {
+    printf("Blocking receiver child returned error %d\n", child_ret);
+    test_failures++;
+    mq_test_pace();
+    return;
+  }
+
+  printf("Destroying queue %d\n", qid);
+  mq_test_pace();
+  if (disastrOS_mq_destroy(qid) != qid) {
+    printf("Failed to destroy queue %d after blocking receiver test\n", qid);
+    test_failures++;
+    mq_test_pace();
+    return;
+  }
+  
+
+  printf("[MQ-TEST] blocking receiver passed\n");
 }
 
 void MsgQueueTest_error_cases() {
@@ -227,6 +262,7 @@ void MsgQueueTest_error_cases() {
     mq_test_pace();
     return;
   }
+
 
   printf("Trying to create queue with size > MAX_MESSAGES_PER_QUEUE\n");
   mq_test_pace();
@@ -301,26 +337,18 @@ void MsgQueueTest_error_cases() {
 
 
 void MsgQueueTest_runAll() {
-  MsgQueueTest_init();
 
-  MsgQueueTest_create_destroy();
-  disastrOS_printStatus();
+  MsgQueueTest_function();
 
-  MsgQueueTest_send();
-  disastrOS_printStatus();
+  MsgQueueTest_blocking_sender();
 
-  MsgQueueTest_receive();
-  disastrOS_printStatus();
-
-  MsgQueueTest_blocking_behavior();
-  disastrOS_printStatus();
+  MsgQueueTest_blocking_receiver();
 
   MsgQueueTest_error_cases();
-  disastrOS_printStatus();
 
   if (!test_failures)
-    printf("\n[MQ-TEST] ALL TESTS PASSED\n");
+    printf("\n[MQ-TEST] ALL TESTS PASSED\n\n");
   else
-    printf("\n[MQ-TEST] FAILURES=%d\n", test_failures);
+    printf("\n[MQ-TEST] FAILURES=%d\n\n", test_failures);
 
  }
