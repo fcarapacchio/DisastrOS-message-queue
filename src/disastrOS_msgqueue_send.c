@@ -92,6 +92,8 @@ void internal_mq_send() {
             receiver->syscall_retvalue = size;
         }
 
+        Message_free(msg);
+
         receiver->status = Ready;
         List_insert(&ready_list, ready_list.last, (ListItem*) receiver);
 
