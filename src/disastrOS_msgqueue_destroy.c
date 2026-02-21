@@ -8,6 +8,11 @@
 void internal_mq_destroy() {
     int queue_id = running->syscall_args[0];
 
+    if (queue_id <= 0) {
+        running->syscall_retvalue = DSOS_EMQINVALID;
+        return;
+    }
+
     // find the resource by its id
     Resource* r = ResourceList_byId(&resources_list, queue_id);
     if (!r || r->type != RESOURCE_MESSAGE_QUEUE) {

@@ -11,6 +11,11 @@ void internal_mq_receive() {
     void* user_buffer = (void*) running->syscall_args[1];
     int buffer_size = running->syscall_args[2];
 
+    if (queue_id <= 0) {
+    running->syscall_retvalue = DSOS_EMQINVALID;
+    return;
+    }
+
     if (buffer_size <= 0) {
     running->syscall_retvalue = DSOS_EBUFFER;
     return;

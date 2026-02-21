@@ -41,15 +41,14 @@
 // message queue errors
 #define DSOS_EMQFULL -14   // queue is full
 #define DSOS_EMQEMPTY -15  // queue is empty
-#define DSOS_EMQNOTFOUND -16  // queue not found
-#define DSOS_EMQINVALID -17  // queue  invalid
-#define DSOS_EMQTIMEOUT -18  // timeout nella receive
-#define DSOS_EERROR -19 // generic error
-#define DSOS_EMQCREATE -20 // error in queue creation
-#define DSOS_EMQEXISTS -21 // message queue already exists
-#define DSOS_EMQCLOSED -22 // message queue is closed
-#define DSOS_EMQNOTOPEN -23 // message queue status is not open
-#define DSOS_EBUFFER -24 // buffer size error 
+#define DSOS_EMQINVALID -16  // queue  invalid
+#define DSOS_EMQTIMEOUT -17  // timeout nella receive
+#define DSOS_EERROR -18 // generic error
+#define DSOS_EMQCREATE -19 // error in queue creation
+#define DSOS_EMQEXISTS -20 // message queue already exists
+#define DSOS_EMQCLOSED -21 // message queue is closed
+#define DSOS_EMQNOTOPEN -22 // message queue status is not open
+#define DSOS_EBUFFER -23 // buffer size error 
 
 // syscall numbers
 #define DSOS_MAX_SYSCALLS 32

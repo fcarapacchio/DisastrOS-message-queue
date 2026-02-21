@@ -34,7 +34,6 @@ In this project, a message queue is implemented as a kernel resource shared betw
 In include/disastrOS_constants.h are defined the following error codes:
 - `DSOS_EMQFULL` — queue is full
 - `DSOS_EMQEMPTY` — queue is empty
-- `DSOS_EMQNOTFOUND` — queue not found
 - `DSOS_EMQINVALID` — invalid queue id/params
 - `DSOS_EMQTIMEOUT` — timeout in receive (reserved)
 - `DSOS_EERROR` — generic error

@@ -96,7 +96,7 @@ void MessageQueue_printAll() {
 }
 
 void MessageQueue_print_messages(int queue_id) {
-  if (!queue_id) {
+  if (queue_id <= 0) {
     printf("MessageQueue_print_messages: NULL queue\n");
     return;
   }
