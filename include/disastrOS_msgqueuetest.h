@@ -1,13 +1,7 @@
 #pragma once
 
-// Test creating and destroying message queues
-void MsgQueueTest_create_destroy();
-
-// Test sending messages
-void MsgQueueTest_send();
-
-// Test receiving messages
-void MsgQueueTest_receive();
+// Test message queue: create, send, receive and destroy
+void MsgQueueTest_function();
 
 // Test blocking behavior when queue is full
 void MsgQueueTest_blocking_sender();

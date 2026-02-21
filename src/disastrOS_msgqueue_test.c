@@ -38,7 +38,6 @@ void MsgQueueTest_function() {
   if (disastrOS_mq_create(qid, 4) != qid) {
     printf("Failed to create queue %d for receive test\n", qid);
     test_failures++;
-    mq_test_pace();
     return;
   }
   printf("Queue %d created successfully!\n", qid);
@@ -48,7 +47,6 @@ void MsgQueueTest_function() {
   if (disastrOS_mq_create(qid, 4) != DSOS_EMQEXISTS) {
     printf("Queue %d was created twice\n", qid);
     test_failures++;
-    mq_test_pace();
     return;
   }
   printf("Queue %d already exists, can't create another with same queue id\n", qid);
@@ -57,7 +55,6 @@ void MsgQueueTest_function() {
   if (disastrOS_mq_send(qid, payload, sizeof(payload)) != 0) {
     printf("Failed to send message on queue %d\n", qid);
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -69,7 +66,6 @@ void MsgQueueTest_function() {
   if (received != (int) sizeof(payload)) {
     printf("Receive size mismatch, got %d expected %zu\n", received, sizeof(payload));
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -78,7 +74,6 @@ void MsgQueueTest_function() {
   if (strcmp(buffer, payload) != 0) {
     printf("Payload mismatch: got '%s' expected '%s'\n", buffer, payload);
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -86,7 +81,6 @@ void MsgQueueTest_function() {
   if (disastrOS_mq_destroy(qid) != qid) {
     printf("Failed to destroy queue %d after receive test\n", qid);
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -106,7 +100,6 @@ void MsgQueueTest_blocking_sender() {
   if (disastrOS_mq_create(qid, 2) != qid) {
     printf("Failed to create queue %d for blocking test\n", qid);
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -114,7 +107,6 @@ void MsgQueueTest_blocking_sender() {
   if (disastrOS_mq_send(qid, first_msg, sizeof(first_msg)) != 0) {
     printf("Failed to send first message\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
   
@@ -122,7 +114,6 @@ void MsgQueueTest_blocking_sender() {
   if (disastrOS_mq_send(qid, second_msg, sizeof(second_msg)) != 0) {
     printf("Failed to send second message\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -138,7 +129,6 @@ void MsgQueueTest_blocking_sender() {
   if (disastrOS_mq_receive(qid, out, sizeof(out)) <= 0) {
     printf("Failed first receive\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -146,7 +136,6 @@ void MsgQueueTest_blocking_sender() {
  if (disastrOS_wait(0, &child_ret) < 0) {
     printf("Failed wait on spawned sender\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -154,7 +143,6 @@ void MsgQueueTest_blocking_sender() {
   if (disastrOS_mq_destroy(qid) != qid) {
     printf("Failed to destroy queue %d after blocking sender test\n", qid);
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -170,7 +158,6 @@ void MsgQueueTest_blocking_receiver() {
   if (disastrOS_mq_create(qid, 2) != qid) {
     printf("Failed to create queue %d for blocking receiver test\n", qid);
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -186,7 +173,6 @@ void MsgQueueTest_blocking_receiver() {
   if (disastrOS_mq_send(qid, wake_msg, sizeof(wake_msg)) != 0) {
     printf("Failed to send wake message on queue %d\n", qid);
     test_failures++;
-    mq_test_pace();
     return;
   }
   
@@ -200,14 +186,12 @@ void MsgQueueTest_blocking_receiver() {
   if (disastrOS_wait(0, &child_ret) < 0) {
     printf("Failed wait on blocking receiver child\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
 
   if (child_ret < 0) {
     printf("Blocking receiver child returned error %d\n", child_ret);
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -215,7 +199,6 @@ void MsgQueueTest_blocking_receiver() {
   if (disastrOS_mq_destroy(qid) != qid) {
     printf("Failed to destroy queue %d after blocking receiver test\n", qid);
     test_failures++;
-    mq_test_pace();
     return;
   }
   
@@ -233,7 +216,6 @@ void MsgQueueTest_error_cases() {
   if (disastrOS_mq_create(qid, 0) != DSOS_EMQINVALID) {
     printf("Queue created with invalid size 0\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -242,7 +224,6 @@ void MsgQueueTest_error_cases() {
   if (disastrOS_mq_create(qid, MAX_MESSAGES_PER_QUEUE + 1) != DSOS_EMQINVALID) {
     printf("Queue created with oversized capacity\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -250,21 +231,18 @@ void MsgQueueTest_error_cases() {
   if (disastrOS_mq_send(9999, payload, sizeof(payload)) != DSOS_EMQINVALID) {
     printf("Send succeeded on invalid queue id\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
 
   if (disastrOS_mq_receive(9999, buffer, sizeof(buffer)) != DSOS_EMQINVALID) {
     printf("Receive succeeded on invalid queue id\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
 
   if (disastrOS_mq_destroy(9999) != DSOS_EMQINVALID) {
     printf("Destroy succeeded on invalid queue id\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -272,7 +250,6 @@ void MsgQueueTest_error_cases() {
   if (disastrOS_mq_create(qid, 2) != qid) {
     printf("Failed creating queue %d for buffer checks\n", qid);
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -280,7 +257,6 @@ void MsgQueueTest_error_cases() {
   if (disastrOS_mq_send(qid, payload, 0) != DSOS_EBUFFER) {
     printf("Send with size 0 did not fail as expected\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -288,7 +264,6 @@ void MsgQueueTest_error_cases() {
   if (disastrOS_mq_receive(qid, buffer, 0) != DSOS_EBUFFER) {
     printf("Receive with size 0 did not fail as expected\n");
     test_failures++;
-    mq_test_pace();
     return;
   }
 
@@ -296,7 +271,6 @@ void MsgQueueTest_error_cases() {
   if (disastrOS_mq_destroy(qid) != qid) {
     printf("Failed destroying queue %d after error checks\n", qid);
     test_failures++;
-    mq_test_pace();
     return;
   }
 
