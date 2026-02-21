@@ -9,6 +9,24 @@ void internal_schedule() {
   if (running) {
     disastrOS_debug("SCHEDULE - %d ->", running->pid);
    }
+
+
+// we check the timers, to see if to wake up some process
+  // we insert the processes in front the ready list
+  TimerItem* elapsed_timer=0;
+  PCB* previous_pcb=0;
+  
+
+
+  while( (elapsed_timer=TimerList_current(&timer_list, disastrOS_time)) ){
+    PCB* pcb_to_wake=elapsed_timer->pcb;
+    List_detach(&waiting_list, (ListItem*) pcb_to_wake);
+    pcb_to_wake->status=Ready;
+    pcb_to_wake->timer=0;
+    List_insert(&ready_list, (ListItem*) previous_pcb, (ListItem*) pcb_to_wake);
+    previous_pcb=pcb_to_wake;
+    TimerList_removeCurrent(&timer_list);
+  } 
 // if there is no ready process, do not preempt
 if(!ready_list.first) return;
 

@@ -12,14 +12,14 @@ void internal_mq_send() {
     int size = running->syscall_args[2];
 
     if (queue_id <= 0) {
-    running->syscall_retvalue = DSOS_EMQINVALID;
-    return;
-  }
+        running->syscall_retvalue = DSOS_EMQINVALID;
+        return;
+    }
 
-    if (size <= 0 || size >= MESSAGE_MAX_SIZE) {
-    running->syscall_retvalue = DSOS_EBUFFER;
-    return;
-  }
+    if (size <= 0 || size > MESSAGE_MAX_SIZE) {
+        running->syscall_retvalue = DSOS_EBUFFER;
+        return;
+    }
 
     // find the queue
     Resource* res = ResourceList_byId(&resources_list, queue_id);
@@ -47,6 +47,7 @@ void internal_mq_send() {
         MessageQueue_print(mq->queue_id);
         internal_schedule();
 
+        // no process was schedulable: avoid spinning forever in this syscall
         if (running->status == Waiting) {
             List_detach(&mq->waiting_senders, (ListItem*) running);
             running->status = Running;
@@ -54,7 +55,7 @@ void internal_mq_send() {
             return;
         }
         
-        // if queue is till full and the running process changed, we stop here to avoid another insert in waiting_senders in the same kernel execution
+        // if queue is still full and the running process changed, we stop here to avoid another insert in waiting_senders in the same kernel execution
         if (mq->current_messages >= mq->max_messages) {
           return;
         }
@@ -90,11 +91,11 @@ void internal_mq_send() {
         msg = (Message*)List_detach(&mq->messages, mq->messages.first);
         mq->current_messages--;
 
-        if (receiver_buffer_size < size) {
+        if (receiver_buffer_size < msg->size) {
             receiver->syscall_retvalue = DSOS_EBUFFER;
         } else {
             memcpy(receiver_buffer, msg->data, msg->size);
-            receiver->syscall_retvalue = size;
+            receiver->syscall_retvalue = msg->size;
         }
 
         Message_free(msg);

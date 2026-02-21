@@ -212,7 +212,7 @@ void MsgQueueTest_error_cases() {
   char payload[] = "err-case";
   char buffer[32];
 
-  printf("Trying to create queue with invalid size 0\n");
+  printf("\nTrying to create queue with invalid size 0\n");
   if (disastrOS_mq_create(qid, 0) != DSOS_EMQINVALID) {
     printf("Queue created with invalid size 0\n");
     test_failures++;

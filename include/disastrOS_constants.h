@@ -41,7 +41,7 @@
 // message queue errors
 #define DSOS_EMQFULL -14   // queue is full
 #define DSOS_EMQEMPTY -15  // queue is empty
-#define DSOS_EMQINVALID -16  // queue  invalid
+#define DSOS_EMQINVALID -16  // queue  invalid/doesn't exist
 #define DSOS_EMQTIMEOUT -17  // timeout nella receive
 #define DSOS_EERROR -18 // generic error
 #define DSOS_EMQCREATE -19 // error in queue creation
