@@ -11,7 +11,7 @@ void internal_mq_create() {
   int size  = running->syscall_args[1];
 
   // check parameter
-  if (queue_id < 0 || size <= 0 || size > MAX_MESSAGES_PER_QUEUE) {
+  if (queue_id <= 0 || size <= 0 || size > MAX_MESSAGES_PER_QUEUE) {
     running->syscall_retvalue = DSOS_EMQINVALID;
     return;
   }

@@ -7,9 +7,10 @@
 #include "disastrOS_message_queue.h"
 
 void internal_mq_receive() {
-    int queue_id = running->syscall_args[0];
-    void* user_buffer = (void*) running->syscall_args[1];
-    int buffer_size = running->syscall_args[2];
+    PCB* caller = running;
+    int queue_id = caller->syscall_args[0];
+    void* user_buffer = (void*) caller->syscall_args[1];
+    int buffer_size = caller->syscall_args[2];
 
     if (queue_id <= 0) {
       running->syscall_retvalue = DSOS_EMQINVALID;
@@ -17,13 +18,13 @@ void internal_mq_receive() {
     }
 
     if (buffer_size <= 0) {
-      running->syscall_retvalue = DSOS_EBUFFER;
+      caller->syscall_retvalue = DSOS_EBUFFER;
       return;
     }
 
     Resource* res = ResourceList_byId(&resources_list, queue_id);
     if (!res || res->type != RESOURCE_MESSAGE_QUEUE) {
-        running->syscall_retvalue = DSOS_EMQINVALID;
+        caller->syscall_retvalue = DSOS_EMQINVALID;
         return;
     }
 
@@ -32,26 +33,31 @@ void internal_mq_receive() {
     // if queue is empty, block the current process
     if (!mq->messages.first) {
         if (mq->status != MQ_OPEN) {
-            running->syscall_retvalue = DSOS_EMQNOTOPEN;
+            caller->syscall_retvalue = DSOS_EMQNOTOPEN;
             return;
         }
 
-        running->status = Waiting;
-        List_insert(&mq->waiting_receivers, mq->waiting_receivers.last, (ListItem*) running);
-        printf("[mq_receive] pid=%d inserted into waiting_receivers on queue %d\n", running->pid, mq->queue_id);
+        caller->status = Waiting;
+        List_insert(&mq->waiting_receivers, mq->waiting_receivers.last, (ListItem*) caller);
+        printf("[mq_receive] pid=%d inserted into waiting_receivers on queue %d\n", caller->pid, mq->queue_id);
         MessageQueue_print(mq->queue_id);
         internal_schedule();
 
         // no process was schedulable: avoid spinning forever in this syscall
-        if (running->status == Waiting) {
-        List_detach(&mq->waiting_receivers, (ListItem*) running);
-        running->status = Running;
-        running->syscall_retvalue = DSOS_EMQEMPTY;
+        if (running == caller && caller->status == Waiting) {
+        List_detach(&mq->waiting_receivers, (ListItem*) caller);
+        caller->status = Running;
+        caller->syscall_retvalue = DSOS_EMQEMPTY;
         return;
       }
       
-      // if queue is still empty and the running process changed, we stop here to avoid another insert in waiting_receivers in the same kernel execution
-       if (!mq->messages.first) {
+      // If scheduler switched to a different process, stop here.
+      if (running != caller) {
+        return;
+      }
+
+      // queue is still empty for caller after resume
+      if (!mq->messages.first) {
         return;
       }
 }
@@ -62,7 +68,7 @@ void internal_mq_receive() {
 
     if (buffer_size < msg->size) {
       Message_free(msg);
-      running->syscall_retvalue = DSOS_EBUFFER; 
+      caller->syscall_retvalue = DSOS_EBUFFER; 
       return; 
     }
 
@@ -96,5 +102,5 @@ void internal_mq_receive() {
         List_insert(&ready_list, ready_list.last, (ListItem*) sender);
     }
 
-    running->syscall_retvalue = received_size;
+    caller->syscall_retvalue = received_size;
 }

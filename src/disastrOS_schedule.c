@@ -11,13 +11,11 @@ void internal_schedule() {
    }
 
 
-// we check the timers, to see if to wake up some process
-  // we insert the processes in front the ready list
+  // we check the timers, to see if to wake up some process
+  
   TimerItem* elapsed_timer=0;
   PCB* previous_pcb=0;
   
-
-
   while( (elapsed_timer=TimerList_current(&timer_list, disastrOS_time)) ){
     PCB* pcb_to_wake=elapsed_timer->pcb;
     List_detach(&waiting_list, (ListItem*) pcb_to_wake);
@@ -27,6 +25,7 @@ void internal_schedule() {
     previous_pcb=pcb_to_wake;
     TimerList_removeCurrent(&timer_list);
   } 
+
 // if there is no ready process, do not preempt
 if(!ready_list.first) return;
 
