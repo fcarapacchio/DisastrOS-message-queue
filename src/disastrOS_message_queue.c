@@ -171,7 +171,7 @@ void MessageQueue_print(int queue_id){
       }
       if (!ws_count)
         printf("  [none]\n");
-      printf("  total_waiting_senders=%d\n", ws_count);
+      printf("  total_waiting_senders=%d\n\n", ws_count);
     }
     item = item->next;
   }

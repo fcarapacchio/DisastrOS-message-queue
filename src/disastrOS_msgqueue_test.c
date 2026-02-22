@@ -293,4 +293,5 @@ void MsgQueueTest_runAll() {
   else
     printf("\n[MQ-TEST] FAILURES=%d\n\n", test_failures);
 
+  disastrOS_exit(0);
  }
