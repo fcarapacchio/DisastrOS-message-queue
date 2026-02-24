@@ -38,8 +38,6 @@ MessageQueue* MessageQueue_alloc(int queue_id, int size) {
   mq->resource.ref_count = 0;
   List_init(&mq->resource.descriptors_ptrs);
 
-  // init internal list
-  mq->list.prev = mq->list.next = 0;
   
   // Message Queue part
   List_init(&mq->messages);

@@ -55,6 +55,8 @@ static void producer(void* args) {
   ProducerArgs* p = (ProducerArgs*) args;
   char payload[MAX_MSG_SIZE];
   snprintf(payload, sizeof(payload), "msg-%d", p->seq);  // build the message using seq parameter
+
+  disastrOS_printStatus();
   
   int ret = disastrOS_mq_send(p->queue_id, payload, (int) strlen(payload) + 1);
   if (ret < 0) {
@@ -71,6 +73,8 @@ static void consumer(void* args) {
   ConsumerArgs* c = (ConsumerArgs*) args;
   char payload[MAX_MSG_SIZE];
   char expected[MAX_MSG_SIZE];
+
+  disastrOS_printStatus();
 
   memset(payload, 0, sizeof(payload));
   int ret = disastrOS_mq_receive(c->queue_id, payload, sizeof(payload));
@@ -118,6 +122,7 @@ static ConsumerArgs consumer_args_global[MAX_ACTIONS];
   for (int i = 0; i < count; ++i) {
     if (actions[i].type == ACTION_PREEMPT) {
       disastrOS_preempt();
+      disastrOS_printStatus();
       continue;
     }
 
@@ -125,6 +130,7 @@ static ConsumerArgs consumer_args_global[MAX_ACTIONS];
       producer_args_global[prod_count].queue_id = actions[i].queue_id;
       producer_args_global[prod_count].seq = actions[i].value;
       disastrOS_spawn(producer, &producer_args_global[prod_count]);
+      disastrOS_printStatus();
       prod_count++;
       spawned++;
       continue;
@@ -134,6 +140,7 @@ static ConsumerArgs consumer_args_global[MAX_ACTIONS];
       consumer_args_global[cons_count].queue_id = actions[i].queue_id;
       consumer_args_global[cons_count].expected_seq = actions[i].value;
       disastrOS_spawn(consumer, &consumer_args_global[cons_count]);
+      disastrOS_printStatus();
       cons_count++;
       spawned++;
     }

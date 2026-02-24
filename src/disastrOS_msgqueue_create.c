@@ -33,4 +33,6 @@ void internal_mq_create() {
   // insert in the global list
   List_insert(&resources_list, resources_list.last, (ListItem*) &mq->resource);
   running->syscall_retvalue = queue_id;
+
+  printf("Message Queue %d has been created\n", mq->queue_id);
 }

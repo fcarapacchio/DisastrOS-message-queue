@@ -8,7 +8,7 @@ typedef enum ProcessStatus {Invalid=-1,
 			    Created=0x0,
 			    Running=0x1,
 			    Ready=0x2,
-			    Waiting=0x3,   // io or semaphore wait
+			    Waiting=0x3,
 			    Suspended=0x4, // ctrl-z
 			    Zombie=0x5}
   ProcessStatus;
@@ -31,11 +31,7 @@ typedef struct PCB{
   ListHead descriptors;
   
   
-  //we are really rude :) the stack is INSIDE the pcb
-  //forgive me for the bestiality
   char stack[STACK_SIZE];
-
-  // more stuff to come
 
   
   //the one below is a hack for the syscalls

@@ -21,6 +21,8 @@ void internal_mq_destroy() {
     }
 
     MessageQueue* mq = (MessageQueue*) r;
+    
+    printf("Destroying message queue %d...\n", mq->queue_id);
 
     if (mq->status == MQ_CLOSED) {
         running->syscall_retvalue = DSOS_EMQCLOSED;
@@ -58,6 +60,8 @@ void internal_mq_destroy() {
 
     // free the memory
     MessageQueue_free(mq);
+
+    printf("Message queue %d destroyed\n", mq->queue_id);
 
     running->syscall_retvalue = queue_id;
 }

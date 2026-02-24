@@ -30,6 +30,8 @@ void internal_mq_receive() {
 
     MessageQueue* mq = (MessageQueue*) res;
 
+    printf("[mq_receive] Trying to receive a message from queue %d (receive also wakes up a waiting sender)\n", mq->queue_id);
+
     // if queue is empty, block the current process
     if (!mq->messages.first) {
         if (mq->status != MQ_OPEN) {

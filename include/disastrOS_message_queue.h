@@ -19,9 +19,6 @@ typedef struct MessageQueue {
   // MUST BE FIRST if treated as a Resource
   Resource resource;
 
-  // message queue global list 
-  ListItem list;
-
   // queue message list
   ListHead messages;        
 

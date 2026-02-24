@@ -6,9 +6,9 @@
 
 // replaces the running process with the next one in the ready list
 void internal_schedule() {
-  if (running) {
+  /*if (running) {
     disastrOS_debug("SCHEDULE - %d ->", running->pid);
-   }
+   }*/
 
 
   // we check the timers, to see if to wake up some process

@@ -32,6 +32,8 @@ void internal_mq_send() {
 
     MessageQueue* mq = (MessageQueue*) res;
 
+    printf("[mq_send] Trying to send a message to queue %d (send also wakes up a waiting receiver)\n", mq->queue_id);
+
     // if queue is full, block the process
     if (mq->current_messages >= mq->max_messages) {
         printf("[mq_send] queue %d FULL (%d/%d), pid=%d enters waiting_senders\n",

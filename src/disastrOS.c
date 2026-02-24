@@ -92,7 +92,7 @@ void setupSignals(void) {
 int disastrOS_syscall(int syscall_num, ...) {
   assert(running); 
   va_list ap;
-  if (syscall_num<0||syscall_num>DSOS_MAX_SYSCALLS)
+  if (syscall_num<0||syscall_num>=DSOS_MAX_SYSCALLS)
     return DSOS_ESYSCALL_OUT_OF_RANGE;
 
   int nargs=syscall_numarg[syscall_num];
@@ -115,7 +115,7 @@ void disastrOS_trap(){
 	    "SYSCALL_IN",
 	    syscall_num);
   
-  if (syscall_num<0||syscall_num>DSOS_MAX_SYSCALLS) {
+  if (syscall_num<0||syscall_num>=DSOS_MAX_SYSCALLS) {
     running->syscall_retvalue = DSOS_ESYSCALL_OUT_OF_RANGE;
     goto return_to_process;
   }
